@@ -22,7 +22,7 @@ export const MenuMovil = ({ setState }) => {
         {/* Header */}
         <Header>
           <LogoBox>M&L</LogoBox>
-          <LogoText>Minimarket</LogoText>
+          <LogoText>Mathias y Luciana</LogoText>
           <CloseButton onClick={setState}>
             <Icon icon="lucide:x" />
           </CloseButton>

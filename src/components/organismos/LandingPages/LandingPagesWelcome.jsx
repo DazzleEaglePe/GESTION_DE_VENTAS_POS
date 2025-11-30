@@ -36,7 +36,7 @@ export const LandingPagesWelcome = () => {
         <NavContent>
           <NavLogo to="/">
             <LogoBox>M&L</LogoBox>
-            <LogoText>Minimarket</LogoText>
+            <LogoText>Mathias y Luciana</LogoText>
           </NavLogo>
 
           <NavLinks $open={menuOpen}>
@@ -79,7 +79,7 @@ export const LandingPagesWelcome = () => {
       <HeroSection>
         <HeroContent className="fade-up">
           <Logo>M&L</Logo>
-          <Title>Minimarket Minimarket</Title>
+          <Title>Minimarket Mathias y Luciana</Title>
           <Subtitle>Sistema de Gestión de Ventas</Subtitle>
           <Location>Ica, Perú — 2025</Location>
           
@@ -145,7 +145,7 @@ export const LandingPagesWelcome = () => {
 
       {/* Footer */}
       <Footer>
-        <FooterText>© 2025 Minimarket Minimarket</FooterText>
+        <FooterText>© 2025 Minimarket Mathias y Luciana</FooterText>
       </Footer>
     </Container>
   );

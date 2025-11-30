@@ -50,7 +50,7 @@ export function Sidebar({ state, setState }) {
         {/* Logo */}
         <LogoSection $isopen={state.toString()}>
           <LogoBox>M&L</LogoBox>
-          <LogoText $isopen={state.toString()}>Minimarket</LogoText>
+          <LogoText $isopen={state.toString()}>Mathias y Luciana</LogoText>
         </LogoSection>
 
         {/* Navegación Principal */}

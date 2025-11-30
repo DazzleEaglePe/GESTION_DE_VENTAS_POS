@@ -59,7 +59,7 @@ export function LoginTemplate() {
         <NavLink to="/" style={{ textDecoration: 'none' }}>
           <LogoContainer>
             <Logo>M&L</Logo>
-            <LogoText>Minimarket</LogoText>
+            <LogoText>Mathias y Luciana</LogoText>
           </LogoContainer>
         </NavLink>
       </Navbar>
@@ -212,7 +212,7 @@ export function LoginTemplate() {
 
         {/* Footer info */}
         <FooterInfo>
-          <span>Minimarket "Minimarket"</span>
+          <span>Minimarket "Mathias y Luciana"</span>
           <span>Ica, Perú — 2025</span>
         </FooterInfo>
       </Content>

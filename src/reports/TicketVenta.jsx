@@ -351,7 +351,7 @@ const TicketVenta = async (output, data) => {
           style: "text",
         },
         {
-          text: "Minimarket Minimarket - Ica, Perú",
+          text: "Minimarket Mathias y Luciana - Ica, Perú",
           style: "text",
           margin: [0, 2, 0, 0],
         },
