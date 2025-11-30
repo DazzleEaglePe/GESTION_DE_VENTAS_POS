@@ -53,6 +53,15 @@ export async function MostrarStockXAlmacenesYProducto(p) {
   return data;
 }
 
+// Nueva función para obtener stock total de un producto en todos los almacenes
+export async function MostrarStockTotalXProducto(p) {
+  const { data } = await supabase
+    .from(tabla)
+    .select(`stock, almacen(nombre, sucursales(nombre))`)
+    .eq("id_producto", p.id_producto);
+  return data;
+}
+
 /**
  * Registra un movimiento de stock de forma atómica
  * Incluye: inserción de movimiento, actualización de stock y precios
