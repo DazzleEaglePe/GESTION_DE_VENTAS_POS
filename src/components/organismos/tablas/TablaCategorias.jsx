@@ -1,12 +1,8 @@
 import styled from "styled-components";
-import {
-  ContentAccionesTabla,
-  useCategoriasStore,
-  Paginacion,ImagenContent, Icono
-} from "../../../index";
-import Swal from "sweetalert2";
-import { v } from "../../../styles/variables";
+import { Icon } from "@iconify/react";
 import { useState } from "react";
+import Swal from "sweetalert2";
+import { useCategoriasStore } from "../../../index";
 import {
   flexRender,
   getCoreRowModel,
@@ -15,36 +11,30 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { FaArrowsAltV } from "react-icons/fa";
+
 export function TablaCategorias({
   data,
   SetopenRegistro,
   setdataSelect,
   setAccion,
 }) {
-  if (data==null) return;
-  const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
-  const [columnFilters, setColumnFilters] = useState([]);
-
+  const [sorting, setSorting] = useState([]);
   const { eliminarCategoria, validarEliminarCategoria } = useCategoriasStore();
-  
+
   async function eliminar(p) {
     if (p.nombre === "General") {
       Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
+        title: "Acción no permitida",
+        text: "Esta categoría es un valor por defecto y no puede modificarse.",
+        icon: "warning",
+        confirmButtonColor: "#111",
       });
       return;
     }
 
     try {
-      // Primero validar qué pasará con la categoría
       const validacion = await validarEliminarCategoria({ id: p.id });
-      
-      // Si tiene productos asociados, mostrar advertencia clara
+
       if (validacion.productos_asociados > 0) {
         Swal.fire({
           title: "No se puede eliminar",
@@ -55,27 +45,25 @@ export function TablaCategorias({
             </p>
           `,
           icon: "warning",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "Entendido",
+          confirmButtonColor: "#111",
         });
         return;
       }
 
-      // Si puede eliminarse sin problemas
       const result = await Swal.fire({
-        title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminada, ¡no podrá recuperar esta categoría!",
+        title: "¿Eliminar categoría?",
+        text: "Esta acción no se puede deshacer",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#64748b",
         confirmButtonText: "Sí, eliminar",
         cancelButtonText: "Cancelar",
       });
 
       if (result.isConfirmed) {
         const resultado = await eliminarCategoria({ id: p.id, icono: p.icono });
-        
+
         if (resultado.exito) {
           Swal.fire({
             icon: "success",
@@ -101,341 +89,453 @@ export function TablaCategorias({
     }
   }
 
-  function editar(data) {
-    if (data.nombre === "General") {
+  function editar(item) {
+    if (item.nombre === "General") {
       Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
+        title: "Acción no permitida",
+        text: "Esta categoría es un valor por defecto y no puede modificarse.",
+        icon: "warning",
+        confirmButtonColor: "#111",
       });
       return;
     }
     SetopenRegistro(true);
-    setdataSelect(data);
+    setdataSelect(item);
     setAccion("Editar");
   }
+
   const columns = [
     {
       accessorKey: "icono",
-      header: "Icono", 
+      header: "Icono",
       enableSorting: false,
-      cell: (info) => (
-        <td data-title="Color" className="ContentCell">
-          {
-            info.getValue()!="-"?(   <ImagenContent imagen={info.getValue()}/>):(<Icono>
-              {<v.iconoimagenvacia/>}
-            </Icono>)
-          }
-    
-        </td>
+      cell: ({ row }) => (
+        <IconCell>
+          {row.original.icono && row.original.icono !== "-" ? (
+            <CategoryImage src={row.original.icono} alt={row.original.nombre} />
+          ) : (
+            <EmptyIcon>
+              <Icon icon="lucide:image" />
+            </EmptyIcon>
+          )}
+        </IconCell>
       ),
-
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
-   
     {
       accessorKey: "nombre",
-      header: "Descripcion",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
+      header: "Nombre",
+      cell: ({ getValue }) => <CategoryName>{getValue()}</CategoryName>,
     },
-
     {
       accessorKey: "color",
       header: "Color",
       enableSorting: false,
-      cell: (info) => (
-        <td data-title="Color" className="ContentCell">
-          <Colorcontent color={info.getValue()} $alto="25px" $ancho="25px" />
-        </td>
+      cell: ({ getValue }) => (
+        <ColorCell>
+          <ColorDot $color={getValue()} />
+          <ColorText>{getValue()}</ColorText>
+        </ColorCell>
       ),
-
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
     {
       accessorKey: "acciones",
       header: "",
       enableSorting: false,
-      cell: (info) => (
-        <td data-title="Acciones" className="ContentCell">
-          <ContentAccionesTabla
-            funcionEditar={() => editar(info.row.original)}
-            funcionEliminar={() => eliminar(info.row.original)}
-          />
-        </td>
+      cell: ({ row }) => (
+        <ActionsCell>
+          <ActionButton
+            $variant="edit"
+            onClick={() => editar(row.original)}
+            title="Editar"
+          >
+            <Icon icon="lucide:pencil" />
+          </ActionButton>
+          <ActionButton
+            $variant="delete"
+            onClick={() => eliminar(row.original)}
+            title="Eliminar"
+          >
+            <Icon icon="lucide:trash-2" />
+          </ActionButton>
+        </ActionsCell>
       ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
   ];
+
   const table = useReactTable({
-    data,
+    data: data || [],
     columns,
-    state: {
-      columnFilters,
-    },
+    state: { sorting },
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    columnResizeMode: "onChange",
-    meta: {
-      updateData: (rowIndex, columnId, value) =>
-        setData((prev) =>
-          prev.map((row, index) =>
-            index === rowIndex
-              ? {
-                  ...prev[rowIndex],
-                  [columnId]: value,
-                }
-              : row
-          )
-        ),
+    initialState: {
+      pagination: { pageSize: 10 },
     },
   });
+
+  // Return condicional después de los hooks
+  if (!data) return null;
+
+  if (data.length === 0) {
+    return (
+      <EmptyState>
+        <Icon icon="lucide:folder-open" />
+        <h3>No hay categorías</h3>
+        <p>Crea tu primera categoría para comenzar</p>
+      </EmptyState>
+    );
+  }
+
   return (
-    <>
-      <Container>
-        <table className="responsive-table">
+    <Container>
+      <TableWrapper>
+        <Table>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id}>
-                    {header.column.columnDef.header}
-                    {header.column.getCanSort() && (
-                      <span
-                        style={{ cursor: "pointer" }}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <FaArrowsAltV />
-                      </span>
-                    )}
-                    {
-                      {
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted()]
-                    }
-                    <div
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                      className={`resizer ${
-                        header.column.getIsResizing() ? "isResizing" : ""
-                      }`}
-                    />
-                  </th>
+                  <Th
+                    key={header.id}
+                    $sortable={header.column.getCanSort()}
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    <ThContent>
+                      {header.column.columnDef.header}
+                      {header.column.getCanSort() && (
+                        <SortIcon $active={header.column.getIsSorted()}>
+                          <Icon icon="lucide:chevrons-up-down" />
+                        </SortIcon>
+                      )}
+                    </ThContent>
+                  </Th>
                 ))}
               </tr>
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map(item=>(
-              
-                <tr key={item.id}>
-                  {item.getVisibleCells().map(cell => (
-                  
-                      <td key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
-                    
-                  ))}
-                </tr>
-             
+            {table.getRowModel().rows.map((row) => (
+              <Tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <Td key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </Td>
+                ))}
+              </Tr>
             ))}
           </tbody>
-        </table>
-        <Paginacion
-          table={table}
-          irinicio={() => table.setPageIndex(0)}
-          pagina={table.getState().pagination.pageIndex + 1}
-          setPagina={setPagina}
-          maximo={table.getPageCount()}
-        />
-      </Container>
-    </>
+        </Table>
+      </TableWrapper>
+
+      {/* Pagination */}
+      <Pagination>
+        <PageInfo>
+          Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} - {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, data.length)} de {data.length}
+        </PageInfo>
+        <PageButtons>
+          <PageButton
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <Icon icon="lucide:chevrons-left" />
+          </PageButton>
+          <PageButton
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <Icon icon="lucide:chevron-left" />
+          </PageButton>
+          <PageNumber>
+            {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+          </PageNumber>
+          <PageButton
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <Icon icon="lucide:chevron-right" />
+          </PageButton>
+          <PageButton
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          >
+            <Icon icon="lucide:chevrons-right" />
+          </PageButton>
+        </PageButtons>
+      </Pagination>
+    </Container>
   );
 }
+
 const Container = styled.div`
-  position: relative;
+  padding: 0;
+`;
 
-  margin: 5% 3%;
-  @media (min-width: ${v.bpbart}) {
-    margin: 2%;
+const TableWrapper = styled.div`
+  overflow-x: auto;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Th = styled.th`
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: ${(props) => (props.$sortable ? "pointer" : "default")};
+  user-select: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: ${(props) => (props.$sortable ? "#f1f5f9" : "#f8fafc")};
   }
-  @media (min-width: ${v.bphomer}) {
-    margin: 2em auto;
-    /* max-width: ${v.bphomer}; */
+
+  &:first-child {
+    width: 80px;
   }
-  .responsive-table {
-    width: 100%;
-    margin-bottom: 1.5em;
-    border-spacing: 0;
-    @media (min-width: ${v.bpbart}) {
-      font-size: 0.9em;
-    }
-    @media (min-width: ${v.bpmarge}) {
-      font-size: 1em;
-    }
-    thead {
-      
-      position: absolute;
 
-      padding: 0;
-      border: 0;
-      height: 1px;
-      width: 1px;
-      overflow: hidden;
-      
-      @media (min-width: ${v.bpbart}) {
-        position: relative;
-        height: auto;
-        width: auto;
-        overflow: auto;
-      }
-      th {
-        
-        border-bottom: 2px solid ${({theme})=>theme.color2};
-        font-weight:700;
-        text-align: center;
-        color: ${({ theme }) => theme.text};
-        &:first-of-type {
-          text-align: center;
-        }
-      }
-    }
-    tbody,
-    tr,
-    th,
-    td {
-      
-      display: block;
-      padding: 0;
-      text-align: left;
-      white-space: normal;
-    }
-    tr {
-      
-      @media (min-width: ${v.bpbart}) {
-        display: table-row;
-      }
-    }
-
-    th,
-    td {
-      
-      padding: 0.5em;
-      vertical-align: middle;
-      @media (min-width: ${v.bplisa}) {
-        padding: 0.75em 0.5em;
-      }
-      @media (min-width: ${v.bpbart}) {
-        display: table-cell;
-        padding: 0.5em;
-      }
-      @media (min-width: ${v.bpmarge}) {
-        padding: 0.75em 0.5em;
-      }
-      @media (min-width: ${v.bphomer}) {
-        padding: 0.75em;
-      }
-    }
-    tbody {
-      @media (min-width: ${v.bpbart}) {
-        display: table-row-group;
-      }
-      tr {
-        margin-bottom: 1em;
-        &:nth-of-type(even) {
-          background-color: rgba(161, 161, 161, 0.1);
-        }
-        @media (min-width: ${v.bpbart}) {
-          display: table-row;
-          border-width: 1px;
-        }
-        &:last-of-type {
-          margin-bottom: 0;
-        }
-        &:nth-of-type(even) {
-          @media (min-width: ${v.bpbart}) {
-           
-          }
-        }
-      }
-      th[scope="row"] {
-        
-        @media (min-width: ${v.bplisa}) {
-          border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-        }
-        @media (min-width: ${v.bpbart}) {
-          background-color: transparent;
-          text-align: center;
-          color: ${({ theme }) => theme.text};
-        }
-      }
-      .ContentCell {
-        text-align: right;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        height: 50px;
-
-        border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-        @media (min-width: ${v.bpbart}) {
-          justify-content: center;
-          border-bottom: none;
-        }
-      }
-      td {
-        text-align: right;
-        @media (min-width: ${v.bpbart}) {
-          /* border-bottom: 1px solid rgba(161, 161, 161, 0.32); */
-          text-align: center;
-        }
-      }
-      td[data-title]:before {
-        content: attr(data-title);
-        float: left;
-        font-size: 0.8em;
-        @media (min-width: ${v.bplisa}) {
-          font-size: 0.9em;
-        }
-        @media (min-width: ${v.bpbart}) {
-          content: none;
-        }
-      }
-    }
+  &:last-child {
+    width: 100px;
+    text-align: right;
   }
 `;
-const Colorcontent = styled.div`
-  justify-content: center;
-  min-height: ${(props) => props.$alto};
-  width: ${(props) => props.$ancho};
+
+const ThContent = styled.div`
   display: flex;
-  background-color: ${(props) => props.color};
+  align-items: center;
+  gap: 6px;
+`;
+
+const SortIcon = styled.span`
+  display: flex;
+  align-items: center;
+  color: ${(props) => (props.$active ? "#43a047" : "#cbd5e1")};
+  transition: color 0.2s;
+
+  svg {
+    font-size: 14px;
+  }
+`;
+
+const Tr = styled.tr`
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+  }
+`;
+
+const Td = styled.td`
+  padding: 16px 20px;
+  vertical-align: middle;
+
+  &:last-child {
+    text-align: right;
+  }
+`;
+
+const IconCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CategoryImage = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #f5f5f5;
+`;
+
+const EmptyIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+
+  svg {
+    font-size: 18px;
+  }
+`;
+
+const CategoryName = styled.span`
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1a1a2e;
+`;
+
+const ColorCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const ColorDot = styled.div`
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
+  background-color: ${(props) => props.$color || "#ccc"};
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const ColorText = styled.span`
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-family: monospace;
+`;
+
+const ActionsCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${(props) =>
+    props.$variant === "edit" &&
+    `
+    background: #f0f9ff;
+    color: #0284c7;
+
+    &:hover {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+  `}
+
+  ${(props) =>
+    props.$variant === "delete" &&
+    `
+    background: #fef2f2;
+    color: #ef4444;
+
+    &:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+  `}
+
+  svg {
+    font-size: 16px;
+  }
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+`;
+
+const PageInfo = styled.span`
+  font-size: 0.8125rem;
+  color: #64748b;
+`;
+
+const PageButtons = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const PageButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1a1a2e;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 16px;
+  }
+`;
+
+const PageNumber = styled.span`
+  padding: 0 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a1a2e;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
   text-align: center;
+  color: #64748b;
+
+  svg {
+    font-size: 48px;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    margin: 0;
+  }
 `;

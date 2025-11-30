@@ -137,6 +137,15 @@ export function RegistrarProductos({
     }
   }, []);
 
+  // Cuando cambian los almacenes disponibles, seleccionar el primero
+  useEffect(() => {
+    if (dataAlmacenes && dataAlmacenes.length > 0) {
+      setAlmacenSelectItem(dataAlmacenes[0]);
+    } else {
+      setAlmacenSelectItem(null);
+    }
+  }, [dataAlmacenes, setAlmacenSelectItem]);
+
   // Early return after all hooks
   if (!state) return null;
 

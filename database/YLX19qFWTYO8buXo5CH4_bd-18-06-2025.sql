@@ -2595,6 +2595,23 @@ $$;
 ALTER FUNCTION public.insertarserializaciones() OWNER TO postgres;
 
 --
+-- Name: insertar_almacen_por_defecto(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE OR REPLACE FUNCTION public.insertar_almacen_por_defecto() 
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO almacen (id_sucursal, nombre, "default", delete)
+  VALUES (NEW.id, 'Almacen principal', true, false);
+  RETURN NEW;
+END
+$$;
+
+ALTER FUNCTION public.insertar_almacen_por_defecto() OWNER TO postgres;
+
+--
 -- TOC entry 676 (class 1255 OID 29473)
 -- Name: insertpordefecto(); Type: FUNCTION; Schema: public; Owner: postgres
 --
@@ -3483,6 +3500,13 @@ CREATE TRIGGER insertarserializacionestrigger AFTER INSERT ON public.sucursales 
 
 
 --
+-- Name: sucursales insertar_almacen_trigger; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER insertar_almacen_trigger AFTER INSERT ON public.sucursales FOR EACH ROW EXECUTE FUNCTION public.insertar_almacen_por_defecto();
+
+
+--
 -- TOC entry 4130 (class 2620 OID 29956)
 -- Name: empresa pordefectotrigger; Type: TRIGGER; Schema: public; Owner: postgres
 --
@@ -3521,6 +3545,17 @@ CREATE TRIGGER triggerinsertarpermisohome AFTER INSERT ON public.usuarios FOR EA
 
 CREATE TRIGGER triggervalidarstock BEFORE INSERT OR UPDATE ON public.detalle_venta FOR EACH ROW EXECUTE FUNCTION public.validarstock();
 
+
+--
+-- Crear almacenes para sucursales existentes que no tienen almacén
+-- (ejecutar una sola vez para migración de datos existentes)
+--
+
+INSERT INTO almacen (id_sucursal, nombre, "default", delete)
+SELECT s.id, 'Almacen principal', true, false
+FROM sucursales s
+LEFT JOIN almacen a ON s.id = a.id_sucursal
+WHERE a.id IS NULL;
 
 
 INSERT INTO public.modulos VALUES (16, 'Ventas', false, '-', '-', '/pos', '#operacion');
