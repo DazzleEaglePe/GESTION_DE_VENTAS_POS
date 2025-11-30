@@ -6,6 +6,7 @@ import {
   MostrarStockXAlmacenYProducto,
   RegistrarMovimientoAtomico,
   ObtenerOCrearStock,
+  MostrarStockTotalXProducto,
 } from "../supabase/crudStock";
 
 export const useStockStore = create((set) => ({
@@ -37,5 +38,10 @@ export const useStockStore = create((set) => ({
   },
   ObtenerOCrearStock: async (p) => {
     return await ObtenerOCrearStock(p);
+  },
+  // Mostrar stock total de un producto en todos los almacenes
+  mostrarStockTotalXProducto: async (p) => {
+    const response = await MostrarStockTotalXProducto(p);
+    return response;
   },
 }));

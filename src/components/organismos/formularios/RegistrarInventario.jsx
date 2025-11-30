@@ -1,8 +1,6 @@
 import styled from "styled-components";
-import { v } from "../../../styles/variables";
-import { InputText, Btn1 } from "../../../index";
+import { Icon } from "@iconify/react";
 import { useForm } from "react-hook-form";
-import { BtnClose } from "../../ui/buttons/BtnClose";
 import { useGlobalStore } from "../../../store/GlobalStore";
 import { useProductosStore } from "../../../store/ProductosStore";
 import { useMovStockStore } from "../../../store/MovStockStore";
@@ -11,14 +9,15 @@ import { useAlmacenesStore } from "../../../store/AlmacenesStore";
 import { useStockStore } from "../../../store/StockStore";
 import { useSucursalesStore } from "../../../store/SucursalesStore";
 import { useQuery } from "@tanstack/react-query";
+import { SelectList } from "../../ui/lists/SelectList";
 
-export function RegistrarInventario() {
+export function RegistrarInventario({ setIsExploding }) {
   const { setStateClose } = useGlobalStore();
   const { productosItemSelect } = useProductosStore();
   const { tipo, setTipo } = useMovStockStore();
-  const { almacenSelectItem, mostrarAlmacenesXSucursal } = useAlmacenesStore();
+  const { almacenSelectItem, mostrarAlmacenesXSucursal, setAlmacenSelectItem, dataAlmacenesXsucursal } = useAlmacenesStore();
   const { mostrarStockXAlmacenYProducto, dataStockXAlmacenYProducto } = useStockStore();
-  const { sucursalItemSelect } = useSucursalesStore();
+  const { sucursalesItemSelect, dataSucursales, selectSucursal } = useSucursalesStore();
 
   const {
     register,
@@ -27,10 +26,10 @@ export function RegistrarInventario() {
   } = useForm();
 
   // Cargar almacenes de la sucursal
-  useQuery({
-    queryKey: ["mostrar almacenes X sucursal", sucursalItemSelect?.id],
-    queryFn: () => mostrarAlmacenesXSucursal({ id_sucursal: sucursalItemSelect?.id }),
-    enabled: !!sucursalItemSelect?.id,
+  const { data: dataAlmacenes } = useQuery({
+    queryKey: ["mostrar almacenes X sucursal inventario", sucursalesItemSelect?.id],
+    queryFn: () => mostrarAlmacenesXSucursal({ id_sucursal: sucursalesItemSelect?.id }),
+    enabled: !!sucursalesItemSelect?.id,
   });
 
   // Cargar stock actual del producto en el almacén seleccionado
@@ -51,262 +50,484 @@ export function RegistrarInventario() {
   const mutation = useInsertarMovStockMutation();
 
   const handlesub = (data) => {
-    mutation.mutate(data);
+    mutation.mutate(data, {
+      onSuccess: () => {
+        setIsExploding?.(true);
+        setStateClose(false);
+      },
+    });
+  };
+
+  const handleClose = () => {
+    setStateClose(false);
   };
 
   return (
-    <Container>
-      {mutation.isPending ? (
-        <div className="sub-contenedor">
-          <span>guardando...🔼</span>
-        </div>
-      ) : (
-        <div className="sub-contenedor">
-          <div className="headers">
-            <section>
-              <h1>Registrar Inventario</h1>
-            </section>
-            <section>
-              <BtnClose funcion={() => setStateClose(false)} />
-            </section>
-          </div>
+    <Overlay onClick={handleClose}>
+      <Modal onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <Header>
+          <HeaderTitle>
+            <Icon icon="lucide:package-plus" />
+            Registrar Movimiento
+          </HeaderTitle>
+          <CloseBtn onClick={handleClose}>
+            <Icon icon="lucide:x" />
+          </CloseBtn>
+        </Header>
 
-          {productosItemSelect?.nombre ? (
-            <form className="formulario" onSubmit={handleSubmit(handlesub)}>
-              <section className="form-subcontainer">
-                {/* Info del producto seleccionado */}
-                <div className="producto-info">
-                  <p>
-                    <strong>Producto:</strong> {productosItemSelect?.nombre}
-                  </p>
-                  <p>
-                    <strong>Stock actual:</strong>{" "}
-                    {dataStockXAlmacenYProducto?.stock ?? 0}
-                  </p>
-                  <p>
-                    <strong>Almacén:</strong>{" "}
-                    {almacenSelectItem?.nombre ?? "No seleccionado"}
-                  </p>
+        {productosItemSelect?.nombre ? (
+          <Form onSubmit={handleSubmit(handlesub)}>
+            {/* Info del producto */}
+            <ProductInfo>
+              <InfoItem>
+                <Icon icon="lucide:package" width="18" />
+                <div>
+                  <label>Producto</label>
+                  <strong>{productosItemSelect?.nombre}</strong>
                 </div>
+              </InfoItem>
+              <InfoItem>
+                <Icon icon="lucide:layers" width="18" />
+                <div>
+                  <label>Stock actual</label>
+                  <strong>{dataStockXAlmacenYProducto?.stock ?? 0}</strong>
+                </div>
+              </InfoItem>
+            </ProductInfo>
 
-                {/* Tipo de movimiento */}
-                <article className="tipo-movimiento">
-                  <label>Tipo de movimiento:</label>
-                  <div className="radio-group">
-                    <label className={tipo === "ingreso" ? "active" : ""}>
-                      <input
-                        type="radio"
-                        name="tipo"
-                        value="ingreso"
-                        checked={tipo === "ingreso"}
-                        onChange={() => setTipo("ingreso")}
-                      />
-                      Ingreso
-                    </label>
-                    <label className={tipo === "egreso" ? "active" : ""}>
-                      <input
-                        type="radio"
-                        name="tipo"
-                        value="egreso"
-                        checked={tipo === "egreso"}
-                        onChange={() => setTipo("egreso")}
-                      />
-                      Egreso
-                    </label>
-                  </div>
-                </article>
+            {/* Tipo de movimiento */}
+            <InputGroup>
+              <Label>Tipo de movimiento</Label>
+              <TypeToggle>
+                <TypeBtn
+                  type="button"
+                  $active={tipo === "ingreso"}
+                  $variant="ingreso"
+                  onClick={() => setTipo("ingreso")}
+                >
+                  <Icon icon="lucide:arrow-down-circle" width="18" />
+                  Ingreso
+                </TypeBtn>
+                <TypeBtn
+                  type="button"
+                  $active={tipo === "egreso"}
+                  $variant="egreso"
+                  onClick={() => setTipo("egreso")}
+                >
+                  <Icon icon="lucide:arrow-up-circle" width="18" />
+                  Egreso
+                </TypeBtn>
+              </TypeToggle>
+            </InputGroup>
 
-                {/* Cantidad */}
-                <article>
-                  <InputText icono={<v.iconoflechaderecha />}>
-                    <input
-                      className="form__field"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      placeholder="Cantidad"
-                      {...register("cantidad", {
-                        required: true,
-                        min: 0.01,
-                      })}
-                    />
-                    <label className="form__label">Cantidad</label>
-                    {errors.cantidad?.type === "required" && (
-                      <p>Campo requerido</p>
-                    )}
-                    {errors.cantidad?.type === "min" && (
-                      <p>La cantidad debe ser mayor a 0</p>
-                    )}
-                  </InputText>
-                </article>
-
-                {/* Precio de compra */}
-                <article>
-                  <InputText icono={<v.iconoflechaderecha />}>
-                    <input
-                      className="form__field"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue={productosItemSelect?.precio_compra ?? 0}
-                      placeholder="Precio de compra"
-                      {...register("precio_compra", {
-                        required: true,
-                        min: 0,
-                      })}
-                    />
-                    <label className="form__label">Precio de compra</label>
-                    {errors.precio_compra?.type === "required" && (
-                      <p>Campo requerido</p>
-                    )}
-                  </InputText>
-                </article>
-
-                {/* Precio de venta */}
-                <article>
-                  <InputText icono={<v.iconoflechaderecha />}>
-                    <input
-                      className="form__field"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      defaultValue={productosItemSelect?.precio_venta ?? 0}
-                      placeholder="Precio de venta"
-                      {...register("precio_venta", {
-                        required: true,
-                        min: 0,
-                      })}
-                    />
-                    <label className="form__label">Precio de venta</label>
-                    {errors.precio_venta?.type === "required" && (
-                      <p>Campo requerido</p>
-                    )}
-                  </InputText>
-                </article>
-
-                <Btn1
-                  icono={<v.iconoguardar />}
-                  titulo="Guardar"
-                  bgcolor="#F9D70B"
+            {/* Sucursal y Almacén */}
+            <FormGrid>
+              <InputGroup>
+                <Label>Sucursal</Label>
+                <SelectList
+                  data={dataSucursales}
+                  itemSelect={sucursalesItemSelect}
+                  onSelect={selectSucursal}
+                  displayField="nombre"
                 />
-              </section>
-            </form>
-          ) : (
-            <div className="sin-producto">
-              <p>⚠️ Selecciona un producto primero para registrar inventario</p>
-            </div>
-          )}
-        </div>
-      )}
-    </Container>
+              </InputGroup>
+
+              <InputGroup>
+                <Label>Almacén</Label>
+                <SelectList
+                  data={dataAlmacenes || dataAlmacenesXsucursal}
+                  itemSelect={almacenSelectItem}
+                  onSelect={setAlmacenSelectItem}
+                  displayField="nombre"
+                />
+              </InputGroup>
+            </FormGrid>
+
+            {/* Cantidad */}
+            <InputGroup>
+              <Label>Cantidad</Label>
+              <InputWrapper>
+                <InputIcon>
+                  <Icon icon="lucide:hash" />
+                </InputIcon>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.00"
+                  {...register("cantidad", { required: true, min: 0.01 })}
+                />
+              </InputWrapper>
+              {errors.cantidad && <ErrorText>Cantidad requerida y mayor a 0</ErrorText>}
+            </InputGroup>
+
+            {/* Precios */}
+            <FormGrid>
+              <InputGroup>
+                <Label>Precio compra</Label>
+                <InputWrapper>
+                  <InputIcon>
+                    <Icon icon="lucide:dollar-sign" />
+                  </InputIcon>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={productosItemSelect?.precio_compra ?? 0}
+                    {...register("precio_compra", { required: true, min: 0 })}
+                  />
+                </InputWrapper>
+              </InputGroup>
+
+              <InputGroup>
+                <Label>Precio venta</Label>
+                <InputWrapper>
+                  <InputIcon>
+                    <Icon icon="lucide:dollar-sign" />
+                  </InputIcon>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={productosItemSelect?.precio_venta ?? 0}
+                    {...register("precio_venta", { required: true, min: 0 })}
+                  />
+                </InputWrapper>
+              </InputGroup>
+            </FormGrid>
+
+            {/* Actions */}
+            <Actions>
+              <CancelBtn type="button" onClick={handleClose}>
+                Cancelar
+              </CancelBtn>
+              <SubmitBtn type="submit" disabled={mutation.isPending}>
+                {mutation.isPending ? (
+                  <>
+                    <Icon icon="lucide:loader-2" className="spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="lucide:check" />
+                    Guardar
+                  </>
+                )}
+              </SubmitBtn>
+            </Actions>
+          </Form>
+        ) : (
+          <EmptyState>
+            <Icon icon="lucide:alert-circle" width="48" />
+            <h4>Sin producto seleccionado</h4>
+            <p>Primero selecciona un producto para registrar movimiento</p>
+            <CloseStateBtn onClick={handleClose}>Cerrar</CloseStateBtn>
+          </EmptyState>
+        )}
+      </Modal>
+    </Overlay>
   );
 }
 
-const Container = styled.div`
-  transition: 0.5s;
+// Styled Components
+const Overlay = styled.div`
+  position: fixed;
   top: 0;
   left: 0;
-  position: fixed;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
-  width: 100%;
-  min-height: 100vh;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(5px);
+  padding: 20px;
+`;
 
-  .sub-contenedor {
-    position: relative;
-    width: 500px;
-    max-width: 85%;
-    border-radius: 20px;
-    background: ${({ theme }) => theme.body};
-    box-shadow: -10px 15px 30px rgba(10, 9, 9, 0.4);
-    padding: 13px 36px 20px 36px;
-    z-index: 100;
-    max-height: 80vh;
-    overflow-y: auto;
+const Modal = styled.div`
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+`;
 
-    .headers {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+`;
 
-      h1 {
-        font-size: 25px;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-      span {
-        font-size: 20px;
-        cursor: pointer;
-      }
-    }
+const HeaderTitle = styled.h2`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
 
-    .producto-info {
-      background: ${({ theme }) => theme.bg3};
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
+  svg {
+    color: #6366f1;
+  }
+`;
 
-      p {
-        margin: 5px 0;
-        font-size: 14px;
-      }
-    }
+const CloseBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
 
-    .sin-producto {
-      text-align: center;
-      padding: 30px;
-      color: ${({ theme }) => theme.text};
+  &:hover {
+    background: #e5e7eb;
+    color: #374151;
+  }
+`;
 
-      p {
-        font-size: 16px;
-      }
-    }
+const Form = styled.form`
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
 
-    .tipo-movimiento {
-      margin-bottom: 15px;
+const ProductInfo = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+`;
 
-      label {
-        display: block;
-        margin-bottom: 10px;
-        font-weight: 600;
-      }
+const InfoItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
 
-      .radio-group {
-        display: flex;
-        gap: 15px;
+  svg {
+    color: #6366f1;
+  }
 
-        label {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          padding: 10px 20px;
-          border-radius: 8px;
-          cursor: pointer;
-          background: ${({ theme }) => theme.bg3};
-          transition: all 0.3s;
+  label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+  }
 
-          &.active {
-            background: ${({ theme }) => theme.bg4 || "#4CAF50"};
-            color: white;
-          }
+  strong {
+    display: block;
+    font-size: 14px;
+    color: #111;
+  }
+`;
 
-          input[type="radio"] {
-            display: none;
-          }
-        }
-      }
-    }
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
 
-    .formulario {
-      .form-subcontainer {
-        gap: 20px;
-        display: flex;
-        flex-direction: column;
-      }
-    }
+const Label = styled.label`
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+`;
+
+const TypeToggle = styled.div`
+  display: flex;
+  gap: 12px;
+`;
+
+const TypeBtn = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 2px solid ${({ $active, $variant }) => 
+    $active 
+      ? ($variant === "ingreso" ? "#22c55e" : "#ef4444")
+      : "#e5e7eb"
+  };
+  border-radius: 10px;
+  background: ${({ $active, $variant }) =>
+    $active
+      ? ($variant === "ingreso" ? "#dcfce7" : "#fef2f2")
+      : "#fff"
+  };
+  color: ${({ $active, $variant }) =>
+    $active
+      ? ($variant === "ingreso" ? "#166534" : "#dc2626")
+      : "#6b7280"
+  };
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: ${({ $variant }) => 
+      $variant === "ingreso" ? "#22c55e" : "#ef4444"
+    };
+  }
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+`;
+
+const InputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const InputIcon = styled.div`
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f9fafb;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+`;
+
+const ErrorText = styled.span`
+  font-size: 12px;
+  color: #ef4444;
+`;
+
+const Actions = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+`;
+
+const CancelBtn = styled.button`
+  flex: 1;
+  padding: 12px 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+`;
+
+const SubmitBtn = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #333;
+  }
+
+  &:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: #9ca3af;
+
+  svg {
+    margin-bottom: 16px;
+    color: #fbbf24;
+  }
+
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 0 0 20px 0;
+  }
+`;
+
+const CloseStateBtn = styled.button`
+  padding: 10px 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+
+  &:hover {
+    background: #f3f4f6;
   }
 `;

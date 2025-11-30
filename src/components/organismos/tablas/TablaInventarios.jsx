@@ -1,14 +1,5 @@
 import styled from "styled-components";
-import {
-  ContentAccionesTabla,
-  useCategoriasStore,
-  Paginacion,
-  ImagenContent,
-  Icono,
-  useUsuariosStore,
-} from "../../../index";
-import Swal from "sweetalert2";
-import { v } from "../../../styles/variables";
+import { Icon } from "@iconify/react";
 import { useState } from "react";
 import {
   flexRender,
@@ -18,364 +9,390 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { FaArrowsAltV } from "react-icons/fa";
-import { useAsignacionCajaSucursalStore } from "../../../store/AsignacionCajaSucursalStore";
-import { useQueryClient } from "@tanstack/react-query";
-export function TablaInventarios({
-  data,
-  SetopenRegistro,
-  setdataSelect,
-  setAccion,
-}) {
-  if (data == null) return;
-  const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
+
+export function TablaInventarios({ data }) {
+  const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
-  const queryClient = useQueryClient();
-  const { eliminarUsuarioAsignado } = useUsuariosStore();
-  function eliminar(p) {
-    Swal.fire({
-      title: "¿Estás seguro(a)(e)?",
-      text: "Una vez eliminado, ¡no podrá recuperar este registro!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Si, eliminar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await eliminarUsuarioAsignado({ id: p.id_usuario });
-        queryClient.invalidateQueries(["mostrar usuarios asignados"]);
-      }
-    });
-  }
-  function editar(data) {
-    if (data.nombre === "General") {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
-      });
-      return;
-    }
-    SetopenRegistro(true);
-    setdataSelect(data);
-    setAccion("Editar");
-  }
+
   const columns = [
     {
       accessorKey: "fecha",
       header: "Fecha",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
+      cell: (info) => {
+        const fecha = info.getValue();
+        if (!fecha) return "-";
+        const date = new Date(fecha);
+        return (
+          <DateCell>
+            <Icon icon="lucide:calendar" width="14" />
+            {date.toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+          </DateCell>
+        );
       },
     },
     {
       accessorKey: "almacen.sucursales.nombre",
       header: "Sucursal",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
+      cell: (info) => (
+        <LocationCell>
+          <Icon icon="lucide:building-2" width="14" />
+          {info.getValue() || "-"}
+        </LocationCell>
+      ),
     },
     {
       accessorKey: "almacen.nombre",
-      header: "Almacen",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
+      header: "Almacén",
+      cell: (info) => (
+        <LocationCell>
+          <Icon icon="lucide:warehouse" width="14" />
+          {info.getValue() || "-"}
+        </LocationCell>
+      ),
     },
     {
       accessorKey: "detalle",
       header: "Movimiento",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
+      cell: (info) => <span>{info.getValue() || "-"}</span>,
     },
     {
       accessorKey: "origen",
       header: "Origen",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
+      cell: (info) => {
+        const origen = info.getValue();
+        return (
+          <OriginBadge $type={origen}>
+            {origen || "-"}
+          </OriginBadge>
+        );
       },
     },
     {
       accessorKey: "tipo_movimiento",
       header: "Tipo",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
+      cell: (info) => {
+        const tipo = info.getValue();
+        const isIngreso = tipo?.toLowerCase() === "ingreso";
+        return (
+          <TypeBadge $isIngreso={isIngreso}>
+            <Icon icon={isIngreso ? "lucide:arrow-down-circle" : "lucide:arrow-up-circle"} width="14" />
+            {tipo || "-"}
+          </TypeBadge>
+        );
       },
     },
     {
       accessorKey: "cantidad",
       header: "Cantidad",
-      cell: (info) => <span>{info.getValue()}</span>,
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
+      cell: (info) => {
+        const row = info.row.original;
+        const tipo = row.tipo_movimiento?.toLowerCase();
+        const isIngreso = tipo === "ingreso";
+        return (
+          <QuantityCell $isIngreso={isIngreso}>
+            {isIngreso ? "+" : "-"}{info.getValue() || 0}
+          </QuantityCell>
+        );
       },
     },
   ];
+
   const table = useReactTable({
-    data,
+    data: data || [],
     columns,
     state: {
+      sorting,
       columnFilters,
     },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    columnResizeMode: "onChange",
-    meta: {
-      updateData: (rowIndex, columnId, value) =>
-        setData((prev) =>
-          prev.map((row, index) =>
-            index === rowIndex
-              ? {
-                  ...prev[rowIndex],
-                  [columnId]: value,
-                }
-              : row
-          )
-        ),
+    initialState: {
+      pagination: { pageSize: 10 },
     },
   });
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState>
+        <Icon icon="lucide:inbox" width="48" />
+        <h4>Sin movimientos</h4>
+        <p>No hay movimientos de inventario para este producto</p>
+      </EmptyState>
+    );
+  }
+
   return (
-    <>
-      <Container>
-        <table className="responsive-table">
+    <Container>
+      <TableWrapper>
+        <Table>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id}>
-                    {header.column.columnDef.header}
-                    {header.column.getCanSort() && (
-                      <span
-                        style={{ cursor: "pointer" }}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <FaArrowsAltV />
-                      </span>
-                    )}
-                    {
-                      {
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted()]
-                    }
-                    <div
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                      className={`resizer ${
-                        header.column.getIsResizing() ? "isResizing" : ""
-                      }`}
-                    />
-                  </th>
+                  <Th
+                    key={header.id}
+                    $sortable={header.column.getCanSort()}
+                    onClick={header.column.getToggleSortingHandler()}
+                  >
+                    <ThContent>
+                      {header.column.columnDef.header}
+                      {header.column.getCanSort() && (
+                        <SortIcon>
+                          {header.column.getIsSorted() === "asc" ? (
+                            <Icon icon="lucide:chevron-up" width="14" />
+                          ) : header.column.getIsSorted() === "desc" ? (
+                            <Icon icon="lucide:chevron-down" width="14" />
+                          ) : (
+                            <Icon icon="lucide:chevrons-up-down" width="14" />
+                          )}
+                        </SortIcon>
+                      )}
+                    </ThContent>
+                  </Th>
                 ))}
               </tr>
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((item) => (
-              <tr key={item.id}>
-                {item.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>
+            {table.getRowModel().rows.map((row) => (
+              <Tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <Td key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                  </Td>
                 ))}
-              </tr>
+              </Tr>
             ))}
           </tbody>
-        </table>
-        <Paginacion
-          table={table}
-          irinicio={() => table.setPageIndex(0)}
-          pagina={table.getState().pagination.pageIndex + 1}
-          setPagina={setPagina}
-          maximo={table.getPageCount()}
-        />
-      </Container>
-    </>
+        </Table>
+      </TableWrapper>
+
+      {/* Pagination */}
+      <Pagination>
+        <PageInfo>
+          Mostrando {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} -{" "}
+          {Math.min(
+            (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+            data.length
+          )}{" "}
+          de {data.length}
+        </PageInfo>
+        <PageControls>
+          <PageButton
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <Icon icon="lucide:chevron-left" width="18" />
+          </PageButton>
+          <PageNumber>
+            {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+          </PageNumber>
+          <PageButton
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <Icon icon="lucide:chevron-right" width="18" />
+          </PageButton>
+        </PageControls>
+      </Pagination>
+    </Container>
   );
 }
+
+// Styled Components
 const Container = styled.div`
-  position: relative;
+  width: 100%;
+`;
 
-  margin: 5% 3%;
-  @media (min-width: ${v.bpbart}) {
-    margin: 2%;
-  }
-  @media (min-width: ${v.bphomer}) {
-    margin: 2em auto;
-    /* max-width: ${v.bphomer}; */
-  }
-  .responsive-table {
-    width: 100%;
-    margin-bottom: 1.5em;
-    border-spacing: 0;
-    @media (min-width: ${v.bpbart}) {
-      font-size: 0.9em;
-    }
-    @media (min-width: ${v.bpmarge}) {
-      font-size: 1em;
-    }
-    thead {
-      position: absolute;
+const TableWrapper = styled.div`
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+`;
 
-      padding: 0;
-      border: 0;
-      height: 1px;
-      width: 1px;
-      overflow: hidden;
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+`;
 
-      @media (min-width: ${v.bpbart}) {
-        position: relative;
-        height: auto;
-        width: auto;
-        overflow: auto;
-      }
-      th {
-        border-bottom: 2px solid ${({ theme }) => theme.color2};
-        font-weight: 700;
-        text-align: center;
-        color: ${({ theme }) => theme.text};
-        &:first-of-type {
-          text-align: center;
-        }
-      }
-    }
-    tbody,
-    tr,
-    th,
-    td {
-      display: block;
-      padding: 0;
-      text-align: left;
-      white-space: normal;
-    }
-    tr {
-      @media (min-width: ${v.bpbart}) {
-        display: table-row;
-      }
-    }
+const Th = styled.th`
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  cursor: ${({ $sortable }) => ($sortable ? "pointer" : "default")};
+  user-select: none;
+  transition: background 0.15s;
 
-    th,
-    td {
-      padding: 0.5em;
-      vertical-align: middle;
-      @media (min-width: ${v.bplisa}) {
-        padding: 0.75em 0.5em;
-      }
-      @media (min-width: ${v.bpbart}) {
-        display: table-cell;
-        padding: 0.5em;
-      }
-      @media (min-width: ${v.bpmarge}) {
-        padding: 0.75em 0.5em;
-      }
-      @media (min-width: ${v.bphomer}) {
-        padding: 0.75em;
-      }
-    }
-    tbody {
-      @media (min-width: ${v.bpbart}) {
-        display: table-row-group;
-      }
-      tr {
-        margin-bottom: 1em;
-        &:nth-of-type(even) {
-          background-color: rgba(161, 161, 161, 0.1);
-        }
-        @media (min-width: ${v.bpbart}) {
-          display: table-row;
-          border-width: 1px;
-        }
-        &:last-of-type {
-          margin-bottom: 0;
-        }
-        &:nth-of-type(even) {
-          @media (min-width: ${v.bpbart}) {
-          }
-        }
-      }
-      th[scope="row"] {
-        @media (min-width: ${v.bplisa}) {
-          border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-        }
-        @media (min-width: ${v.bpbart}) {
-          background-color: transparent;
-          text-align: center;
-          color: ${({ theme }) => theme.text};
-        }
-      }
-      .ContentCell {
-        text-align: right;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        height: 50px;
-
-        border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-        @media (min-width: ${v.bpbart}) {
-          justify-content: center;
-          border-bottom: none;
-        }
-      }
-      td {
-        text-align: right;
-        @media (min-width: ${v.bpbart}) {
-          /* border-bottom: 1px solid rgba(161, 161, 161, 0.32); */
-          text-align: center;
-        }
-      }
-      td[data-title]:before {
-        content: attr(data-title);
-        float: left;
-        font-size: 0.8em;
-        @media (min-width: ${v.bplisa}) {
-          font-size: 0.9em;
-        }
-        @media (min-width: ${v.bpbart}) {
-          content: none;
-        }
-      }
-    }
+  &:hover {
+    background: ${({ $sortable }) => ($sortable ? "#f3f4f6" : "#f9fafb")};
   }
 `;
-const Colorcontent = styled.div`
-  justify-content: center;
-  min-height: ${(props) => props.$alto};
-  width: ${(props) => props.$ancho};
+
+const ThContent = styled.div`
   display: flex;
-  background-color: ${(props) => props.color};
-  border-radius: 50%;
-  text-align: center;
+  align-items: center;
+  gap: 6px;
+`;
+
+const SortIcon = styled.span`
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+`;
+
+const Tr = styled.tr`
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f9fafb;
+  }
+
+  &:not(:last-child) td {
+    border-bottom: 1px solid #f3f4f6;
+  }
+`;
+
+const Td = styled.td`
+  padding: 14px 16px;
+  color: #374151;
+  vertical-align: middle;
+`;
+
+const DateCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 13px;
+
+  svg {
+    color: #9ca3af;
+  }
+`;
+
+const LocationCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #374151;
+
+  svg {
+    color: #9ca3af;
+  }
+`;
+
+const OriginBadge = styled.span`
+  display: inline-flex;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #374151;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const TypeBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: ${({ $isIngreso }) => ($isIngreso ? "#dcfce7" : "#fef2f2")};
+  color: ${({ $isIngreso }) => ($isIngreso ? "#166534" : "#dc2626")};
+
+  svg {
+    color: inherit;
+  }
+`;
+
+const QuantityCell = styled.span`
+  font-weight: 700;
+  font-size: 15px;
+  color: ${({ $isIngreso }) => ($isIngreso ? "#16a34a" : "#dc2626")};
+`;
+
+const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin-top: 8px;
+`;
+
+const PageInfo = styled.span`
+  font-size: 13px;
+  color: #6b7280;
+`;
+
+const PageControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const PageButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const PageNumber = styled.span`
+  font-size: 13px;
+  color: #374151;
+  padding: 0 8px;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #9ca3af;
+
+  svg {
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 6px 0;
+  }
+
+  p {
+    font-size: 13px;
+    margin: 0;
+  }
 `;

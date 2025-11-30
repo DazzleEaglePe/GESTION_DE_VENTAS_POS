@@ -1,124 +1,60 @@
-import styled from "styled-components";
-import { CrudTemplate } from "../components/templates/CrudTemplate";
-import { RegistrarInventario } from "../components/organismos/formularios/RegistrarInventario";
-import { TablaInventarios } from "../components/organismos/tablas/TablaInventarios";
 import { useQuery } from "@tanstack/react-query";
-
-import { useMovStockStore } from "../store/MovStockStore";
+import { InventarioTemplate } from "../components/templates/InventarioTemplate";
 import { useEmpresaStore } from "../store/EmpresaStore";
 import { useProductosStore } from "../store/ProductosStore";
-import { Title } from "../components/atomos/Title";
-import { Btn1 } from "../components/moleculas/Btn1";
-import { useState } from "react";
-import { BuscadorList } from "../components/ui/lists/BuscadorList";
-import { useGlobalStore } from "../store/GlobalStore";
+import { useSucursalesStore } from "../store/SucursalesStore";
+import { useCategoriasStore } from "../store/CategoriasStore";
+import { BarLoader } from "react-spinners";
+import styled from "styled-components";
+
 export const Inventario = () => {
-  const { mostrarMovStock } = useMovStockStore();
   const { dataempresa } = useEmpresaStore();
-  const { buscarProductos, buscador } = useProductosStore();
-  const { productosItemSelect, setBuscador, selectProductos } =
-    useProductosStore();
-  const [openRegistro, SetopenRegistro] = useState(false);
-  const { setStateClose, setAccion, stateClose, accion } = useGlobalStore();
+  const { mostrarProductos } = useProductosStore();
+  const { mostrarSucursales } = useSucursalesStore();
+  const { mostrarCategorias } = useCategoriasStore();
 
-  const [dataSelect, setdataSelect] = useState([]);
-  const [isExploding, setIsExploding] = useState(false);
-  const {
-    data: dataproductos,
-    isLoading: isLoadingBuscarProductos,
-    error,
-  } = useQuery({
-    queryKey: ["buscar productos", buscador],
-    queryFn: () =>
-      buscarProductos({
-        id_empresa: dataempresa?.id,
-        buscador: buscador,
-      }),
+  // Cargar productos
+  const { isLoading: isLoadingProductos } = useQuery({
+    queryKey: ["mostrar productos", dataempresa?.id],
+    queryFn: () => mostrarProductos({ id_empresa: dataempresa?.id }),
     enabled: !!dataempresa,
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: [
-      "mostrar movimientos de stock",
-      {
-        id_empresa: dataempresa?.id,
-        id_producto: productosItemSelect?.id,
-      },
-    ],
-    queryFn: () =>
-      mostrarMovStock({
-        id_empresa: dataempresa?.id,
-        id_producto: productosItemSelect?.id,
-      }),
+  // Cargar sucursales
+  const { isLoading: isLoadingSucursales } = useQuery({
+    queryKey: ["mostrar sucursales", dataempresa?.id],
+    queryFn: () => mostrarSucursales({ id_empresa: dataempresa?.id }),
     enabled: !!dataempresa,
   });
 
-  function nuevoRegistro() {
-    setStateClose(true);
-    setAccion("Nuevo");
-    setItemSelect([]);
+  // Cargar categorías
+  const { isLoading: isLoadingCategorias } = useQuery({
+    queryKey: ["mostrar categorias", dataempresa?.id],
+    queryFn: () => mostrarCategorias({ id_empresa: dataempresa?.id }),
+    enabled: !!dataempresa,
+  });
+
+  const isLoading = isLoadingProductos || isLoadingSucursales || isLoadingCategorias;
+
+  if (isLoading) {
+    return (
+      <LoadingContainer>
+        <BarLoader color="#6366f1" />
+        <span>Cargando inventario...</span>
+      </LoadingContainer>
+    );
   }
-  return (
-    <Container>
-      {stateClose && <RegistrarInventario />}
 
-      <section className="area1">
-        {productosItemSelect?.nombre && (
-          <span>
-            {" "}
-            Producto: {" "}<strong>{productosItemSelect?.nombre}</strong>{" "}
-          </span>
-        )}
-|
-        <Title>Inventario</Title>
-        <Btn1 funcion={nuevoRegistro} titulo="Registrar" />
-      </section>
-      <section className="area2">
-        <BuscadorList
-          setBuscador={setBuscador}
-          data={dataproductos}
-          onSelect={selectProductos}
-        />
-      </section>
-
-      <section className="main">
-        <TablaInventarios
-          setdataSelect={setdataSelect}
-          setAccion={setAccion}
-          SetopenRegistro={SetopenRegistro}
-          data={data}
-        />
-      </section>
-    </Container>
-  );
+  return <InventarioTemplate />;
 };
-const Container = styled.div`
-  height: calc(100vh - 80px);
 
-  margin-top: 50px;
-  padding: 15px;
-  display: grid;
-  grid-template:
-    "area1" 60px
-    "area2" 60px
-    "main" auto;
-  .area1 {
-    grid-area: area1;
-    /* background-color: rgba(103, 93, 241, 0.14); */
-    display: flex;
-    justify-content: end;
-    align-items: center;
-    gap: 15px;
-  }
-  .area2 {
-    grid-area: area2;
-    /* background-color: rgba(7, 237, 45, 0.14); */
-    display: flex;
-    justify-content: end;
-    align-items: center;
-  }
-  .main {
-    grid-area: main;
-    /* background-color: rgba(237, 7, 221, 0.14); */
-  }
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 16px;
+  color: #6b7280;
+  font-size: 14px;
 `;
