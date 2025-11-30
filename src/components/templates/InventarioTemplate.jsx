@@ -1,9 +1,10 @@
 import styled from "styled-components";
 import { Icon } from "@iconify/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import ConfettiExplosion from "react-confetti-explosion";
+import * as XLSX from "xlsx";
 
 import { useMovStockStore } from "../../store/MovStockStore";
 import { useEmpresaStore } from "../../store/EmpresaStore";
@@ -16,6 +17,11 @@ import { RegistrarInventario } from "../organismos/formularios/RegistrarInventar
 export function InventarioTemplate() {
   const [isExploding, setIsExploding] = useState(false);
   const [busqueda, setBusqueda] = useState("");
+  
+  // Estados para filtros
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("todos");
 
   const { mostrarMovStock } = useMovStockStore();
   const { dataempresa } = useEmpresaStore();
@@ -54,6 +60,51 @@ export function InventarioTemplate() {
   // Calcular stock total sumando todos los almacenes
   const stockTotal = dataStockTotal?.reduce((total, item) => total + (item.stock || 0), 0) || 0;
 
+  // Filtrar movimientos según los filtros aplicados
+  const datosFiltrados = useMemo(() => {
+    if (!dataMovimientos) return [];
+    
+    return dataMovimientos.filter((mov) => {
+      // Filtro por tipo de movimiento
+      if (tipoFiltro !== "todos") {
+        if (mov.tipo_movimiento?.toLowerCase() !== tipoFiltro) {
+          return false;
+        }
+      }
+      
+      // Filtro por fecha desde
+      if (fechaDesde) {
+        const fechaMov = new Date(mov.fecha);
+        const desde = new Date(fechaDesde);
+        desde.setHours(0, 0, 0, 0);
+        if (fechaMov < desde) {
+          return false;
+        }
+      }
+      
+      // Filtro por fecha hasta
+      if (fechaHasta) {
+        const fechaMov = new Date(mov.fecha);
+        const hasta = new Date(fechaHasta);
+        hasta.setHours(23, 59, 59, 999);
+        if (fechaMov > hasta) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [dataMovimientos, tipoFiltro, fechaDesde, fechaHasta]);
+
+  // Verificar si hay filtros activos
+  const hayFiltrosActivos = fechaDesde || fechaHasta || tipoFiltro !== "todos";
+
+  function limpiarFiltros() {
+    setFechaDesde("");
+    setFechaHasta("");
+    setTipoFiltro("todos");
+  }
+
   function nuevoRegistro() {
     if (!productosItemSelect?.id) {
       return;
@@ -71,6 +122,51 @@ export function InventarioTemplate() {
     selectProductos(producto);
     setBusqueda("");
     setBuscador("");
+  }
+
+  function exportarExcel() {
+    if (!datosFiltrados || datosFiltrados.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    // Formatear los datos para Excel (usa datos filtrados)
+    const datosExcel = datosFiltrados.map((mov) => ({
+      "Fecha": mov.fecha ? new Date(mov.fecha).toLocaleDateString("es-PE") : "-",
+      "Sucursal": mov.almacen?.sucursales?.nombre || "-",
+      "Almacén": mov.almacen?.nombre || "-",
+      "Movimiento": mov.detalle || "-",
+      "Origen": mov.origen || "-",
+      "Tipo": mov.tipo_movimiento || "-",
+      "Cantidad": mov.tipo_movimiento?.toLowerCase() === "ingreso" ? `+${mov.cantidad}` : `-${mov.cantidad}`,
+    }));
+
+    // Crear hoja de trabajo
+    const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+    // Ajustar ancho de columnas
+    ws["!cols"] = [
+      { wch: 12 }, // Fecha
+      { wch: 18 }, // Sucursal
+      { wch: 20 }, // Almacén
+      { wch: 30 }, // Movimiento
+      { wch: 12 }, // Origen
+      { wch: 10 }, // Tipo
+      { wch: 12 }, // Cantidad
+    ];
+
+    // Crear libro de trabajo
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Movimientos");
+
+    // Generar nombre del archivo
+    const nombreProducto = productosItemSelect?.nombre?.replace(/[^a-zA-Z0-9]/g, "_") || "producto";
+    const fecha = new Date().toISOString().split("T")[0];
+    const nombreArchivo = `Inventario_${nombreProducto}_${fecha}.xlsx`;
+
+    // Descargar archivo
+    XLSX.writeFile(wb, nombreArchivo);
+    toast.success("Archivo Excel generado correctamente");
   }
 
   return (
@@ -93,10 +189,19 @@ export function InventarioTemplate() {
             </div>
           </TitleWrapper>
         </HeaderInfo>
-        <AddButton onClick={nuevoRegistro} disabled={!productosItemSelect?.id}>
-          <Icon icon="lucide:plus" />
-          Nuevo movimiento
-        </AddButton>
+        <ButtonGroup>
+          <ExportButton 
+            onClick={exportarExcel} 
+            disabled={!productosItemSelect?.id || !dataMovimientos?.length}
+          >
+            <Icon icon="lucide:download" />
+            Exportar Excel
+          </ExportButton>
+          <AddButton onClick={nuevoRegistro} disabled={!productosItemSelect?.id}>
+            <Icon icon="lucide:plus" />
+            Nuevo movimiento
+          </AddButton>
+        </ButtonGroup>
       </Header>
 
       {/* Content Card */}
@@ -153,9 +258,66 @@ export function InventarioTemplate() {
           )}
         </TopSection>
 
+        {/* Filtros - solo mostrar si hay producto seleccionado */}
+        {productosItemSelect?.id && (
+          <FiltersSection>
+            <FilterGroup>
+              <FilterLabel>
+                <Icon icon="lucide:calendar" width="14" />
+                Desde
+              </FilterLabel>
+              <FilterInput
+                type="date"
+                value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+              />
+            </FilterGroup>
+
+            <FilterGroup>
+              <FilterLabel>
+                <Icon icon="lucide:calendar" width="14" />
+                Hasta
+              </FilterLabel>
+              <FilterInput
+                type="date"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+              />
+            </FilterGroup>
+
+            <FilterDivider />
+
+            <FilterGroup>
+              <FilterLabel>
+                <Icon icon="lucide:filter" width="14" />
+                Tipo
+              </FilterLabel>
+              <FilterSelect
+                value={tipoFiltro}
+                onChange={(e) => setTipoFiltro(e.target.value)}
+              >
+                <option value="todos">Todos</option>
+                <option value="ingreso">Ingreso</option>
+                <option value="egreso">Egreso</option>
+              </FilterSelect>
+            </FilterGroup>
+
+            {hayFiltrosActivos && (
+              <ClearFiltersButton onClick={limpiarFiltros}>
+                <Icon icon="lucide:rotate-ccw" width="14" />
+                Limpiar
+              </ClearFiltersButton>
+            )}
+
+            <FilterResults>
+              <strong>{datosFiltrados.length}</strong> de {dataMovimientos?.length || 0} registros
+            </FilterResults>
+          </FiltersSection>
+        )}
+
         {/* Tabla */}
         {productosItemSelect?.id ? (
-          <TablaInventarios data={dataMovimientos || []} />
+          <TablaInventarios data={datosFiltrados} />
         ) : (
           <EmptyState>
             <Icon icon="lucide:package-search" width="64" />
@@ -218,6 +380,33 @@ const Subtitle = styled.p`
   font-size: 14px;
   color: #6b7280;
   margin: 0;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const ExportButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: ${({ disabled }) => disabled ? '#e5e7eb' : '#fff'};
+  color: ${({ disabled }) => disabled ? '#9ca3af' : '#059669'};
+  border: 2px solid ${({ disabled }) => disabled ? '#e5e7eb' : '#059669'};
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${({ disabled }) => disabled ? '#e5e7eb' : '#059669'};
+    color: ${({ disabled }) => disabled ? '#9ca3af' : '#fff'};
+    transform: ${({ disabled }) => disabled ? 'none' : 'translateY(-1px)'};
+  }
 `;
 
 const AddButton = styled.button`
@@ -382,6 +571,132 @@ const ProductBadge = styled.span`
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
+`;
+
+const FiltersSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #f3f4f6;
+  transition: all 0.2s;
+
+  &:focus-within {
+    background: #fff;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  }
+`;
+
+const FilterLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  white-space: nowrap;
+  
+  svg {
+    color: #9ca3af;
+  }
+`;
+
+const FilterInput = styled.input`
+  padding: 6px 8px;
+  border: none;
+  font-size: 14px;
+  background: transparent;
+  min-width: 130px;
+  color: #111;
+  font-weight: 500;
+
+  &:focus {
+    outline: none;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+`;
+
+const FilterSelect = styled.select`
+  padding: 6px 8px;
+  border: none;
+  font-size: 14px;
+  background: transparent;
+  min-width: 100px;
+  color: #111;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+`;
+
+const FilterDivider = styled.div`
+  width: 1px;
+  height: 24px;
+  background: #e5e7eb;
+  margin: 0 4px;
+`;
+
+const ClearFiltersButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+  }
+`;
+
+const FilterResults = styled.div`
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  padding: 8px 14px;
+  background: #f0fdf4;
+  border-radius: 20px;
+  
+  strong {
+    color: #059669;
+    font-weight: 600;
+  }
 `;
 
 const EmptyState = styled.div`
