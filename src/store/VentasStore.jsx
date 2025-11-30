@@ -29,7 +29,7 @@ export const useVentasStore = create((set, get) => ({
   setStatePantallaCobro: (p) =>
     set((state) => {
       if (p.data.length === 0) {
-        toast.warning("Agrega productos, no seas puerco");
+        toast.warning("Agrega productos, por favor");
         return {
           state,
         };

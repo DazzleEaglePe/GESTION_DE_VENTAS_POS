@@ -3,6 +3,8 @@ import {
   MostrarCierreCajaAperturada,
   AperturarCierreCaja,
   CerrarTurnoCaja,
+  CerrarTurnoCajaAtomico,
+  ValidarEstadoCierreCaja,
 } from "../supabase/crudCierresCaja";
 import { supabase } from "../supabase/supabase.config";
 const tabla = "cierrecaja";
@@ -28,6 +30,17 @@ export const useCierreCajaStore = create((set) => ({
     set({ dataCierreCaja: response });
     return response;
   },
+  // Nueva función atómica para cerrar caja
+  cerrarTurnoCajaAtomico: async (p) => {
+    const response = await CerrarTurnoCajaAtomico(p);
+    return response;
+  },
+  // Validar estado antes de cerrar
+  validarEstadoCierreCaja: async (p) => {
+    const response = await ValidarEstadoCierreCaja(p);
+    return response;
+  },
+  // Mantener función original como fallback
   cerrarTurnoCaja: async (p) => {
     await CerrarTurnoCaja(p);
   },

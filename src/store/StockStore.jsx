@@ -4,6 +4,8 @@ import {
   InsertarStock,
   MostrarStockXAlmacenesYProducto,
   MostrarStockXAlmacenYProducto,
+  RegistrarMovimientoAtomico,
+  ObtenerOCrearStock,
 } from "../supabase/crudStock";
 
 export const useStockStore = create((set) => ({
@@ -28,5 +30,12 @@ export const useStockStore = create((set) => ({
   },
   editarStock: async (p,tipo) => {
     await EditarStock(p,tipo);
+  },
+  // Nuevas funciones Fase 1
+  RegistrarMovimientoAtomico: async (p) => {
+    await RegistrarMovimientoAtomico(p);
+  },
+  ObtenerOCrearStock: async (p) => {
+    return await ObtenerOCrearStock(p);
   },
 }));

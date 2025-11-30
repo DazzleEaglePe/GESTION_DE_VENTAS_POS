@@ -76,20 +76,56 @@ export async function BuscarCategorias(p) {
 
   return data;
 }
-export async function EliminarCategorias(p) {
+
+// Validar antes de eliminar categoría
+export async function ValidarEliminarCategoria(p) {
+  const { data, error } = await supabase.rpc("validar_eliminar_categoria", {
+    p_id_categoria: p.id,
+  });
+  
+  if (error) {
+    throw new Error("Error de validación: " + error.message);
+  }
+  
+  // La función retorna un array, tomamos el primer elemento
+  return data?.[0] || data;
+}
+
+// Eliminar categoría físicamente
+export async function EliminarCategoriaFisico(p) {
   const { error } = await supabase.from(tabla).delete().eq("id", p.id);
   if (error) {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: error.message,
-    });
-    return;
+    throw new Error(error.message);
   }
-  if (p.icono != "-") {
+  
+  // Eliminar imagen si existe
+  if (p.icono && p.icono !== "-") {
     const ruta = "categorias/" + p.id;
     await supabase.storage.from("imagenes").remove([ruta]);
   }
+}
+
+// Función principal de eliminación con validación integrada
+export async function EliminarCategorias(p) {
+  // 1. Validar antes de eliminar
+  const validacion = await ValidarEliminarCategoria(p);
+  
+  // 2. Si no puede eliminarse, retornar la información
+  if (!validacion.puede_eliminar) {
+    return {
+      exito: false,
+      validacion: validacion,
+      mensaje: validacion.mensaje,
+    };
+  }
+  
+  // 3. Si puede eliminarse, proceder
+  await EliminarCategoriaFisico(p);
+  
+  return {
+    exito: true,
+    mensaje: "Categoría eliminada correctamente",
+  };
 }
 export async function EditarCategorias(p, fileold, filenew) {
   const { error } = await supabase.rpc("editarcategorias", p);

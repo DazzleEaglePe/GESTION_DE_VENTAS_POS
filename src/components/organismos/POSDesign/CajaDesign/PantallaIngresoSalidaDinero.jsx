@@ -1,11 +1,6 @@
 import styled from "styled-components";
 import { useCierreCajaStore } from "../../../../store/CierreCajaStore";
-import { VolverBtn } from "../../../moleculas/VolverBtn";
-import { InputText2 } from "../../formularios/InputText2";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useEffect, useState } from "react";
-import { Btn1 } from "../../../moleculas/Btn1";
 import { useCajasStore } from "../../../../store/CajasStore";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,17 +9,16 @@ import { useMovCajaStore } from "../../../../store/MovCajaStore";
 import { useMetodosPagoStore } from "../../../../store/MetodosPagoStore";
 import { useUsuariosStore } from "../../../../store/UsuariosStore";
 import { useFormattedDate } from "../../../../hooks/useFormattedDate";
+import { Icon } from "@iconify/react";
+
 export function PantallaIngresoSalidaDinero() {
-  const fechaActual = useFormattedDate()
-  const { tipoRegistro, setStateIngresoSalida } =
-    useCierreCajaStore();
+  const fechaActual = useFormattedDate();
+  const { tipoRegistro, setStateIngresoSalida, dataCierreCaja } = useCierreCajaStore();
   const { insertarMovCaja } = useMovCajaStore();
-  const [startDate, setStartDate] = useState(new Date());
   const [selectedMetodo, setSelectedMetodo] = useState(null);
-  const { dataCaja } = useCajasStore();
   const { dataMetodosPago } = useMetodosPagoStore();
-  const {datausuarios} = useUsuariosStore()
-  const {dataCierreCaja} = useCierreCajaStore()
+  const { datausuarios } = useUsuariosStore();
+
   const {
     register,
     formState: { errors },
@@ -32,182 +26,410 @@ export function PantallaIngresoSalidaDinero() {
     reset,
   } = useForm();
 
+  const isIngreso = tipoRegistro === "ingreso";
+
   const insertar = async (data) => {
-   
     const pmovcaja = {
-      fecha_movimiento:fechaActual,
+      fecha_movimiento: fechaActual,
       tipo_movimiento: tipoRegistro,
       monto: parseFloat(data.monto),
       id_metodo_pago: selectedMetodo?.id,
-      descripcion: `${tipoRegistro==="ingreso"?"Ingreso":"Salida"} de dinero con ${selectedMetodo?.nombre} ${data.motivo?`- detalle: ${data.motivo}`:""}`,
+      descripcion: `${isIngreso ? "Ingreso" : "Salida"} de dinero con ${selectedMetodo?.nombre}${data.motivo ? ` - ${data.motivo}` : ""}`,
       id_usuario: datausuarios?.id,
       id_cierre_caja: dataCierreCaja?.id,
     };
-
     await insertarMovCaja(pmovcaja);
   };
-  const {
-    isPending,
-    mutate: doInsertar,
-    error,
-  } = useMutation({
+
+  const { isPending, mutate: doInsertar } = useMutation({
     mutationKey: ["insertar ingresos salidas caja"],
     mutationFn: insertar,
     onSuccess: () => {
-      toast.success("🎉 Registrado!!!");
-      setStateIngresoSalida(false)
+      toast.success("Movimiento registrado correctamente");
+      setStateIngresoSalida(false);
       reset();
     },
     onError: (error) => {
-      const errorMessage = error.response?.data?.message || error.message || "Error al registrar  !!!";
-    toast.error(`Error: ${errorMessage}`);
+      const errorMessage = error.response?.data?.message || error.message || "Error al registrar";
+      toast.error(errorMessage);
     },
   });
-  const manejadorEnvio = (data) => {
-    doInsertar(data);
-  };
+
   const handleMetodoClick = (item) => {
     setSelectedMetodo(item);
   };
+
   useEffect(() => {
-    const efectivo = dataMetodosPago?.find(
-      (item) => item.nombre === "Efectivo"
-    );
+    const efectivo = dataMetodosPago?.find((item) => item.nombre === "Efectivo");
     if (efectivo) {
-      console.log(efectivo)
       setSelectedMetodo(efectivo);
     }
   }, [dataMetodosPago]);
+
   return (
-    <Container>
-      <VolverBtn funcion={()=>setStateIngresoSalida(false)} />
+    <Overlay onClick={() => setStateIngresoSalida(false)}>
+      <Container onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <Header>
+          <CloseButton onClick={() => setStateIngresoSalida(false)}>
+            <Icon icon="lucide:x" />
+          </CloseButton>
+          <HeaderIcon $isIngreso={isIngreso}>
+            <Icon icon={isIngreso ? "lucide:arrow-down-circle" : "lucide:arrow-up-circle"} />
+          </HeaderIcon>
+          <Title>{isIngreso ? "Ingresar Dinero" : "Retirar Dinero"}</Title>
+          <Subtitle>
+            {isIngreso ? "Registra un ingreso de efectivo a caja" : "Registra una salida de dinero de caja"}
+          </Subtitle>
+        </Header>
 
-      <span className="title">
-        {tipoRegistro === "ingreso"
-          ? "INGRESAR DINERO A CAJA"
-          : "RETIRAR DINERO DE CAJA"}
-      </span>
-      
-      <section className="areatipopago">
-        {dataMetodosPago
-          ?.filter((item) => item.nombre !== "Mixto")
-          .map((item, index) => {
-            return (
-              <article className="box" key={index}>
-                <Btn1
-                  imagen={item.icono != "-" ? item.icono : null}
-                  titulo={item.nombre}
-                  border="0"
-                  height="70px"
-                  width="100%"
-                  funcion={() => handleMetodoClick(item)}
-                  bgcolor={item.id === selectedMetodo?.id ? "#FFD700" : "#FFF"}
-                />
-              </article>
-            );
-          })}
-      </section>
-      <form onSubmit={handleSubmit(manejadorEnvio)}>
-        <section className="area1">
-          <span>Monto:</span>
-          <InputText2>
-            <input
-              className="form__field"
-              placeholder="0.00"
-              type="number"
-              {...register("monto", { required: true })}
-            />
-            {errors.monto?.type === "required" && <p>Campon requerido</p>}
-          </InputText2>
+        {/* Métodos de pago */}
+        <Section>
+          <SectionLabel>Método de pago</SectionLabel>
+          <MetodosGrid>
+            {dataMetodosPago
+              ?.filter((item) => item.nombre !== "Mixto")
+              .map((item, index) => (
+                <MetodoCard
+                  key={index}
+                  $selected={item.id === selectedMetodo?.id}
+                  onClick={() => handleMetodoClick(item)}
+                >
+                  {item.icono && item.icono !== "-" ? (
+                    <MetodoImage src={item.icono} alt={item.nombre} />
+                  ) : (
+                    <MetodoIcon>
+                      <Icon icon="lucide:wallet" />
+                    </MetodoIcon>
+                  )}
+                  <span>{item.nombre}</span>
+                </MetodoCard>
+              ))}
+          </MetodosGrid>
+        </Section>
 
-          {/* <StyledDatePickerWrapper>
-            <StyledDatePicker
-              selected={startDate}
-              onChange={(date) => setStartDate(date)}
-              dateFormat="dd/MM/yyyy"
-              placeholderText="Seleccionar Fecha"
-            />
-          </StyledDatePickerWrapper> */}
-          <span>Motivo (puede estar en blanco)</span>
-          <InputText2>
-            <textarea
-              className="form__field"
-              rows="3"
-              placeholder="motivo"
-              type="text"
+        {/* Form */}
+        <Form onSubmit={handleSubmit((data) => doInsertar(data))}>
+          <InputGroup>
+            <InputLabel>Monto</InputLabel>
+            <InputWrapper>
+              <InputIcon>S/</InputIcon>
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                {...register("monto", { required: "El monto es requerido" })}
+              />
+            </InputWrapper>
+            {errors.monto && <InputError>{errors.monto.message}</InputError>}
+          </InputGroup>
+
+          <InputGroup>
+            <InputLabel>Motivo (opcional)</InputLabel>
+            <TextArea
+              rows="2"
+              placeholder="Describe el motivo del movimiento..."
               {...register("motivo")}
             />
-          </InputText2>
-          <article className="contentbtn">
-            <Btn1
-              titulo={"REGISTRAR"}
-              color="#ffffff"
-              border="2px"
-              bgcolor="#1da939"
-            />
-          </article>
-        </section>
-      </form>
-    </Container>
+          </InputGroup>
+
+          <ButtonGroup>
+            <CancelButton type="button" onClick={() => setStateIngresoSalida(false)}>
+              Cancelar
+            </CancelButton>
+            <SubmitButton type="submit" disabled={isPending} $isIngreso={isIngreso}>
+              {isPending ? (
+                <Icon icon="lucide:loader-2" className="spin" />
+              ) : (
+                <>
+                  <Icon icon={isIngreso ? "lucide:plus" : "lucide:minus"} />
+                  {isIngreso ? "Registrar Ingreso" : "Registrar Salida"}
+                </>
+              )}
+            </SubmitButton>
+          </ButtonGroup>
+        </Form>
+      </Container>
+    </Overlay>
   );
 }
-const Container = styled.div`
-  height: 100vh;
-  position: absolute;
-  background-color: ${({ theme }) => theme.bgtotal};
-  width: 100%;
-  z-index: 10;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  .areatipopago {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
+  z-index: 1000;
+  padding: 20px;
+`;
 
-    .box {
-      flex: 1 1 40%;
-      display: flex;
-      gap: 10px;
-    }
-  }
-  .title {
-    font-size: 25px;
-    font-weight: bold;
-  }
-  .area1 {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    .contentbtn {
-      margin-top: 15px;
-      display: flex;
-      gap: 12px;
-    }
+const Container = styled.div`
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+`;
+
+const Header = styled.div`
+  padding: 24px 24px 20px;
+  text-align: center;
+  position: relative;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f5f5;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  font-size: 20px;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #eee;
+    color: #111;
   }
 `;
-const StyledDatePickerWrapper = styled.div`
+
+const HeaderIcon = styled.div`
+  width: 56px;
+  height: 56px;
+  background: ${({ $isIngreso }) => $isIngreso ? '#f0fdf4' : '#fef2f2'};
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+
+  svg {
+    font-size: 28px;
+    color: ${({ $isIngreso }) => $isIngreso ? '#16a34a' : '#dc2626'};
+  }
+`;
+
+const Title = styled.h2`
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 4px;
+`;
+
+const Subtitle = styled.p`
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+`;
+
+const Section = styled.div`
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+const SectionLabel = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+`;
+
+const MetodosGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+`;
+
+const MetodoCard = styled.button`
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-`;
-const StyledDatePicker = styled(DatePicker)`
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: 2px solid ${({ theme }) => theme.color2};
-  background-color: ${({ theme }) => theme.bgtotal};
-  color: ${({ theme }) => theme.text};
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.primary};
-    box-shadow: 0px 0px 5px ${({ theme }) => theme.primary};
+  padding: 14px 8px;
+  background: ${({ $selected }) => $selected ? '#111' : '#fafafa'};
+  border: 2px solid ${({ $selected }) => $selected ? '#111' : '#e5e5e5'};
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  span {
+    font-size: 12px;
+    font-weight: 500;
+    color: ${({ $selected }) => $selected ? '#fff' : '#333'};
   }
+
+  &:hover {
+    border-color: #111;
+  }
+`;
+
+const MetodoImage = styled.img`
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+`;
+
+const MetodoIcon = styled.div`
+  font-size: 24px;
+  color: inherit;
+`;
+
+const Form = styled.form`
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const InputLabel = styled.label`
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+`;
+
+const InputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const InputIcon = styled.span`
+  position: absolute;
+  left: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #666;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 14px 14px 14px 44px;
+  font-size: 18px;
+  font-weight: 600;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fafafa;
+  color: #111;
+  transition: all 0.15s;
+  outline: none;
+
   &::placeholder {
-    color: ${({ theme }) => theme.placeholder};
+    color: #bbb;
+    font-weight: 400;
+  }
+
+  &:focus {
+    border-color: #111;
+    background: #fff;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fafafa;
+  color: #111;
+  transition: all 0.15s;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+
+  &::placeholder {
+    color: #bbb;
+  }
+
+  &:focus {
+    border-color: #111;
+    background: #fff;
+  }
+`;
+
+const InputError = styled.span`
+  font-size: 12px;
+  color: #ef4444;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+`;
+
+const CancelButton = styled.button`
+  flex: 1;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+  color: #666;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #f5f5f5;
+    color: #111;
+  }
+`;
+
+const SubmitButton = styled.button`
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  background: ${({ $isIngreso }) => $isIngreso ? '#16a34a' : '#dc2626'};
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 `;

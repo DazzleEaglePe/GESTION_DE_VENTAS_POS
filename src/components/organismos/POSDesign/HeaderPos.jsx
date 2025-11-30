@@ -1,9 +1,5 @@
 import styled from "styled-components";
 import {
-  Btn1,
-  InputText2,
-  ListaDesplegable,
-  Reloj,
   useProductosStore,
   useVentasStore,
   useUsuariosStore,
@@ -11,7 +7,6 @@ import {
   useAlmacenesStore,
   useDetalleVentasStore,
 } from "../../../index";
-import { v } from "../../../styles/variables";
 import { Device } from "../../../styles/breakpoints";
 import { Icon } from "@iconify/react";
 import { useEffect, useRef, useState } from "react";
@@ -20,10 +15,10 @@ import { useFormattedDate } from "../../../hooks/useFormattedDate";
 import { useCierreCajaStore } from "../../../store/CierreCajaStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { SelectList } from "../../ui/lists/SelectList";
 import { useStockStore } from "../../../store/StockStore";
 import { useEliminarVentasIncompletasMutate } from "../../../tanstack/VentasStack";
-
+import { Reloj } from "../Reloj";
+import { ListaDesplegable } from "../ListaDesplegable";
 
 export function HeaderPos() {
   const [stateLectora, setStateLectora] = useState(true);
@@ -36,7 +31,7 @@ export function HeaderPos() {
   const { datausuarios } = useUsuariosStore();
   const { dataStockXAlmacenesYProducto, setStateModal } = useStockStore();
 
-  const { idventa, insertarVentas } = useVentasStore();
+  const { idventa, insertarVentas, resetState } = useVentasStore();
 
   const { dataempresa } = useEmpresaStore();
   const { dataCierreCaja } = useCierreCajaStore();
@@ -88,6 +83,15 @@ export function HeaderPos() {
   async function insertarDVentas(idventa) {
     const productosItemSelect =
       useProductosStore.getState().productosItemSelect;
+    
+    // Obtener el almacén seleccionado o el primero disponible
+    const almacenActual = almacenSelectItem?.id || almacenSelectItem?.id_almacen || dataAlmacenesXsucursal?.[0]?.id;
+    
+    if (!almacenActual) {
+      toast.error("No hay almacén seleccionado. Por favor seleccione un almacén.");
+      return;
+    }
+    
     const pDetalleVentas = {
       _id_venta: idventa,
       _cantidad: parseFloat(cantidadInput) || 1,
@@ -95,8 +99,8 @@ export function HeaderPos() {
       _descripcion: productosItemSelect.nombre,
       _id_producto: productosItemSelect.id,
       _precio_compra: productosItemSelect.precio_compra,
-      _id_sucursal:  dataCierreCaja?.caja?.id_sucursal,
-      _id_almacen: almacenSelectItem?.id,
+      _id_sucursal: dataCierreCaja?.caja?.id_sucursal,
+      _id_almacen: almacenActual,
     };
     console.log("pDetalleVentas", pDetalleVentas);
     await insertarDetalleVentas(pDetalleVentas);
@@ -106,6 +110,13 @@ export function HeaderPos() {
     mutationFn: insertarventas,
     onError: (error) => {
       toast.error(`Error: ${error.message}`);
+      
+      // Si la venta no existe, resetear el estado para crear una nueva
+      if (error.code === "VENTA_NO_EXISTE" || error.message.includes("no existe")) {
+        resetState();
+        toast.info("Se reinició la venta. Intente agregar el producto nuevamente.");
+      }
+      
       queryClient.invalidateQueries(["mostrar Stock XAlmacenes YProducto"]);
       if (dataStockXAlmacenesYProducto) {
         setStateModal(true);
@@ -154,196 +165,209 @@ export function HeaderPos() {
       }
     }
   }, [buscador]);
+
   return (
     <Header>
-      <ContentSucursal>
-      <div>
-         <strong>SUCURSAL:&nbsp; </strong>{" "}
-        {dataCierreCaja.caja?.sucursales?.nombre}
-      </div>
-      |
-       <div>
-       <strong>CAJA:&nbsp; </strong>{" "}
-       {dataCierreCaja.caja?.descripcion}
-       </div>
+      <TopBar>
+        <span><strong>SUCURSAL:</strong> {dataCierreCaja.caja?.sucursales?.nombre}</span>
+        <Divider />
+        <span><strong>CAJA:</strong> {dataCierreCaja.caja?.descripcion}</span>
+      </TopBar>
 
-      </ContentSucursal>
-      <section className="contentprincipal">
-        <Contentuser className="area1">
-          <div className="textos">
-            <span className="usuario">{datausuarios?.nombres} </span>
-            <span>🧊{datausuarios?.roles?.nombre} </span>
-          </div>
-        </Contentuser>
-      
-        <article className="contentfecha area3">
+      <MainHeader>
+        <UserInfo>
+          <UserName>{datausuarios?.nombres}</UserName>
+          <UserRole>
+            <Icon icon="lucide:shield-check" />
+            {datausuarios?.roles?.nombre}
+          </UserRole>
+        </UserInfo>
+
+        <ClockWrapper>
           <Reloj />
-        </article>
-      </section>
-      <section className="contentbuscador">
-        <article className="area1">
-          <div className="contentCantidad">
-            <InputText2>
-              <input
-                type="number"
-                min="1"
-                value={cantidadInput}
-                onChange={ValidarCantidad}
-                placeholder="cantidad..."
-                className="form__field"
-              />
-            </InputText2>
-          </div>
-          <InputText2>
-            <input
-              value={buscador}
-              ref={buscadorRef}
-              onChange={buscar}
-              className="form__field"
-              type="search"
-              placeholder="buscar..."
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown" && stateListaproductos) {
-                  e.preventDefault(); // Evita que el input capture el foco
-                  document.querySelector("[tabindex='0'").focus(); //mandar el foco a la lista
-                }
-              }}
-            />
-            <ListaDesplegable
-              funcioncrud={mutationInsertarVentas}
-              top="59px"
-              funcion={selectProductos}
-              setState={() => setStateListaproductos(!stateListaproductos)}
-              data={dataProductos}
-              state={stateListaproductos}
-            />
-          </InputText2>
-        </article>
-        <article className="area2">
-          
-        
-        </article>
-      </section>
+        </ClockWrapper>
+      </MainHeader>
+
+      <SearchSection>
+        <QuantityInput>
+          <input
+            type="number"
+            min="1"
+            value={cantidadInput}
+            onChange={ValidarCantidad}
+            placeholder="1"
+          />
+        </QuantityInput>
+
+        <SearchWrapper>
+          <SearchIcon>
+            <Icon icon="lucide:search" />
+          </SearchIcon>
+          <SearchInput
+            value={buscador}
+            ref={buscadorRef}
+            onChange={buscar}
+            type="search"
+            placeholder="buscar..."
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown" && stateListaproductos) {
+                e.preventDefault();
+                document.querySelector("[tabindex='0'").focus();
+              }
+            }}
+          />
+          <ListaDesplegable
+            funcioncrud={mutationInsertarVentas}
+            top="52px"
+            funcion={selectProductos}
+            setState={() => setStateListaproductos(!stateListaproductos)}
+            data={dataProductos}
+            state={stateListaproductos}
+          />
+        </SearchWrapper>
+      </SearchSection>
     </Header>
   );
 }
+
 const Header = styled.div`
   grid-area: header;
-  /* background-color: rgba(222, 18, 130, 0.5); */
   display: flex;
-  height: 100%;
-
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+
   @media ${Device.desktop} {
-    border-bottom: 1px solid ${({ theme }) => theme.color2};
-  }
-
-  .contentprincipal {
-    width: 100%;
-    display: grid;
-    grid-template-areas:
-      "area1 area2"
-      "area3 area3";
-
-    .area1 {
-      grid-area: area1;
-    }
-    .area2 {
-      grid-area: area2;
-    }
-    .area3 {
-      grid-area: area3;
-    }
-    @media ${Device.desktop} {
-      display: flex;
-      justify-content: space-between;
-    }
-    .contentlogo {
-      display: flex;
-      align-items: center;
-      font-weight: 700;
-      gap: 8px;
-      img {
-        width: 30px;
-        object-fit: contain;
-      }
-    }
-  }
-  .contentbuscador {
-    display: grid;
-    grid-template:
-      "area2 area2"
-      "area1 area1";
-    gap: 10px;
-    height: 100%;
-    align-items: center;
-    position: relative;
-
-    .area1 {
-      grid-area: area1;
-      display: flex;
-      gap: 30px;
-      .contentCantidad {
-        width: 150px;
-      }
-      /* background-color: #ff00ae; */
-    }
-    .area2 {
-      grid-area: area2;
-      display: flex;
-      gap: 10px;
-      /* background-color: #15ff00; */
-    }
-    @media ${Device.desktop} {
-      display: flex;
-      justify-content: flex-start;
-      gap: 10px;
-      .area1 {
-        width: 40vw;
-      }
-    }
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 16px;
   }
 `;
-const ContentSucursal = styled.section`
+
+const TopBar = styled.div`
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  height: 44px;
   display: flex;
+  align-items: center;
   justify-content: center;
-  /* background-color: red; */
-  align-items: center;
-  height: 45px;
-  border-bottom: 1px solid ${({ theme }) => theme.color2};
-  gap:8px;
+  gap: 16px;
+  background: #111;
+  color: #fff;
+  font-size: 13px;
+
+  strong {
+    color: #999;
+  }
 `;
-const Contentuser = styled.div`
+
+const Divider = styled.span`
+  width: 1px;
+  height: 16px;
+  background: #333;
+`;
+
+const MainHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const UserInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const UserName = styled.span`
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+`;
+
+const UserRole = styled.span`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
 
-  .contentimg {
-    display: flex;
-    align-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    img {
-      width: 100%;
-      object-fit: cover;
+  svg {
+    font-size: 14px;
+    color: #16a34a;
+  }
+`;
+
+const ClockWrapper = styled.div`
+  text-align: right;
+`;
+
+const SearchSection = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+`;
+
+const QuantityInput = styled.div`
+  width: 70px;
+  flex-shrink: 0;
+
+  input {
+    width: 100%;
+    height: 48px;
+    border: 2px solid #e5e5e5;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    background: #fafafa;
+    outline: none;
+    transition: all 0.15s;
+
+    &:focus {
+      border-color: #111;
+      background: #fff;
     }
   }
-  .textos {
-    display: none;
+`;
 
-    .usuario {
-      font-weight: 700;
-    }
-    @media ${Device.laptop} {
-      display: flex;
-      flex-direction: column;
-    }
+const SearchWrapper = styled.div`
+  flex: 1;
+  position: relative;
+  max-width: 500px;
+
+  @media ${Device.desktop} {
+    max-width: 400px;
+  }
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 18px;
+  pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  height: 48px;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 0 16px 0 46px;
+  font-size: 15px;
+  background: #fafafa;
+  outline: none;
+  transition: all 0.15s;
+
+  &:focus {
+    border-color: #111;
+    background: #fff;
+  }
+
+  &::placeholder {
+    color: #aaa;
   }
 `;

@@ -5,6 +5,7 @@ import {
   EliminarCategorias,
   InsertarCategorias,
   MostrarCategorias,
+  ValidarEliminarCategoria,
 } from "../index";
 
 export const useCategoriasStore = create((set, get) => ({
@@ -31,11 +32,21 @@ export const useCategoriasStore = create((set, get) => ({
     const { parametros } = get();
     set(mostrarCategorias(parametros));
   },
+  // Validar antes de eliminar (para uso en UI)
+  validarEliminarCategoria: async (p) => {
+    return await ValidarEliminarCategoria(p);
+  },
+  // Eliminar categoría con validación integrada
   eliminarCategoria: async (p) => {
-    await EliminarCategorias(p);
-    const { mostrarCategorias } = get();
-    const { parametros } = get();
-    set(mostrarCategorias(parametros));
+    const resultado = await EliminarCategorias(p);
+    
+    // Solo refrescar si fue exitoso
+    if (resultado.exito) {
+      const { mostrarCategorias, parametros } = get();
+      set(mostrarCategorias(parametros));
+    }
+    
+    return resultado;
   },
   editarCategoria: async (p, fileold, filenew) => {
     await EditarCategorias(p, fileold, filenew);

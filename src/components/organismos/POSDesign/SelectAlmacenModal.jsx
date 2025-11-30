@@ -54,6 +54,15 @@ export const SelectAlmacenModal = () => {
   async function insertarDVentas(idventa) {
     const productosItemSelect =
       useProductosStore.getState().productosItemSelect;
+    
+    // Obtener el almacén - puede venir como id o id_almacen según la fuente
+    const almacenId = almacenSelectItem?.id_almacen || almacenSelectItem?.id;
+    
+    if (!almacenId) {
+      toast.error("No hay almacén seleccionado.");
+      return;
+    }
+    
     const pDetalleVentas = {
       _id_venta: idventa,
       _cantidad: parseFloat(cantidadInput) || 1,
@@ -62,9 +71,9 @@ export const SelectAlmacenModal = () => {
       _id_producto: productosItemSelect.id,
       _precio_compra: productosItemSelect.precio_compra,
       _id_sucursal: sucursalesItemSelectAsignadas.id_sucursal,
-      _id_almacen: almacenSelectItem?.id_almacen,
+      _id_almacen: almacenId,
     };
-    console.log("pDetalleVentas",pDetalleVentas)
+    console.log("pDetalleVentas", pDetalleVentas);
     await insertarDetalleVentas(pDetalleVentas);
   }
   async function Controladorinsertarventas(item) {

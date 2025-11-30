@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   BuscarProductos,MostrarProductos,EliminarProductos,InsertarProductos,EditarProductos, Generarcodigo,
+  MostrarProductosInactivos, RestaurarProducto, ValidarEliminarProducto,
   supabase
 } from "../index";
 const tabla ="productos"
@@ -11,6 +12,7 @@ export const useProductosStore = create((set, get) => ({
     set({ buscador: p });
   },
   dataProductos: [],
+  dataProductosInactivos: [],
   productosItemSelect: {
     id:1
   },
@@ -21,6 +23,11 @@ export const useProductosStore = create((set, get) => ({
     set({ dataProductos: response });
     set({ productosItemSelect: response[0] });
     set({refetchs:p.refetchs})
+    return response;
+  },
+  mostrarProductosInactivos: async (p) => {
+    const response = await MostrarProductosInactivos(p);
+    set({ dataProductosInactivos: response || [] });
     return response;
   },
   selectProductos: (p) => {
@@ -38,11 +45,29 @@ export const useProductosStore = create((set, get) => ({
     set(mostrarProductos(parametros));
     return response;
   },
+  // Validar antes de eliminar (para uso en UI)
+  validarEliminarProducto: async (p) => {
+    return await ValidarEliminarProducto(p);
+  },
+  // Eliminar producto con validación integrada
   eliminarProductos: async (p) => {
-    await EliminarProductos(p);
-    const { mostrarProductos } = get();
-    const { parametros } = get();
-    set(mostrarProductos(parametros));
+    const resultado = await EliminarProductos(p);
+    
+    // Solo refrescar si fue exitoso
+    if (resultado.exito) {
+      const { mostrarProductos, parametros } = get();
+      set(mostrarProductos(parametros));
+    }
+    
+    return resultado;
+  },
+  // Restaurar producto inactivo
+  restaurarProducto: async (p) => {
+    await RestaurarProducto(p);
+    const { mostrarProductos, mostrarProductosInactivos, parametros } = get();
+    // Refrescar ambas listas
+    await mostrarProductos(parametros);
+    await mostrarProductosInactivos({ id_empresa: parametros.id_empresa });
   },
   editarProductos: async (p) => {
     await EditarProductos(p);

@@ -27,49 +27,38 @@ export const DesplegableUser = [
 //data SIDEBAR
 export const LinksArray = [
   {
-    label: "Home",
-    icon: "noto-v1:house",
+    label: "Inicio",
+    icon: "lucide:home",
     to: "/",
   },
   {
     label: "Dashboard",
-    icon: "fluent-emoji-flat:antenna-bars",
+    icon: "lucide:bar-chart-3",
     to: "/dashboard",
   },
   {
-    label: "VENDER",
-    icon: "flat-color-icons:shop",
+    label: "Vender",
+    icon: "lucide:shopping-cart",
     to: "/pos",
   },
   {
     label: "Inventario",
-    icon: "flat-ui:box",
+    icon: "lucide:package",
     to: "/inventario",
   },
-  // {
-  //   label: "Reportes",
-  //   icon: "flat-ui:graph",
-  //   to: "/reportes",
-  // },
- 
 ];
+
 export const SecondarylinksArray = [
- 
   {
     label: "Configuración",
-    icon:"icon-park:setting-two",
+    icon: "lucide:settings",
     to: "/configuracion",
-    color:"#CE82FF"
   },
   {
     label: "Mi perfil",
-    icon:"icon-park:avatar",
+    icon: "lucide:user",
     to: "/miperfil",
-    color:"#CE82FF"
   },
-  
-  
-
 ];
 //temas
 export const TemasData = [

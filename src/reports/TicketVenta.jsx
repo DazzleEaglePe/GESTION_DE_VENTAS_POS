@@ -18,11 +18,13 @@ const TicketVenta = async (output, data) => {
     minute: "2-digit",
     second: "2-digit",
   });
-  const logoempresa = await urlToBase64(
-    data.dataempresa?.logo === "-"
-      ? "https://i.ibb.co/TxhZ45j7/bride.png"
-      : data.dataempresa?.logo
-  );
+  // Verificar si hay logo configurado
+  const tieneLogoConfigurado = data.dataempresa?.logo && data.dataempresa?.logo !== "-";
+  let logoempresa = null;
+  
+  if (tieneLogoConfigurado) {
+    logoempresa = await urlToBase64(data.dataempresa.logo);
+  }
   const productTableBody = [
     [
       { text: "CÓDIGO - DESCRIPCIÓN", colSpan: 4, style: "tProductsHeader" },
@@ -120,12 +122,38 @@ const TicketVenta = async (output, data) => {
   ];
 
   const content = [
-    //DATA EMPRESA
-    {
-      image: logoempresa, //logo
-      fit: [141.73, 56.692],
-      alignment: "center",
-    },
+    //DATA EMPRESA - Logo o texto M&L
+    tieneLogoConfigurado 
+      ? {
+          image: logoempresa,
+          fit: [141.73, 56.692],
+          alignment: "center",
+        }
+      : {
+          // Logo M&L en texto cuando no hay imagen
+          table: {
+            widths: ['*'],
+            body: [[
+              {
+                text: 'M&L',
+                fontSize: 24,
+                bold: true,
+                alignment: 'center',
+                color: '#ffffff',
+                fillColor: '#111111',
+                margin: [0, 8, 0, 8],
+              }
+            ]]
+          },
+          layout: {
+            hLineWidth: () => 0,
+            vLineWidth: () => 0,
+            paddingLeft: () => 40,
+            paddingRight: () => 40,
+          },
+          alignment: 'center',
+          margin: [60, 0, 60, 0],
+        },
     {
       text: data.dataempresa?.nombre,
       style: "header",
@@ -319,13 +347,18 @@ const TicketVenta = async (output, data) => {
           margin: [0, 10, 0, 3],
         },
         {
-          text: "Representación impresa del comprobante original. Consulta tu comprobante aquí:",
+          text: "Representación impresa del comprobante electrónico.",
           style: "text",
         },
         {
-          text: "https://codigo369web.com/",
-          link: "https://codigo369web.com/",
+          text: "Minimarket Minimarket - Ica, Perú",
+          style: "text",
+          margin: [0, 2, 0, 0],
+        },
+        {
+          text: "¡Gracias por su compra!",
           style: "link",
+          margin: [0, 4, 0, 0],
         },
       ],
     },

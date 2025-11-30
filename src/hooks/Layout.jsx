@@ -3,6 +3,7 @@ import {
   Sidebar,
   SwitchHamburguesa,
   Spinner1,
+  NavigationLoader,
   useEmpresaStore,
   useUsuariosStore,
   MenuMovil,
@@ -72,6 +73,7 @@ export function Layout({ children }) {
   }
   return (
     <Container className={sidebarOpen ? "active" : ""}>
+      <NavigationLoader />
       <section className="contentSidebar">
         <Sidebar
           state={sidebarOpen}

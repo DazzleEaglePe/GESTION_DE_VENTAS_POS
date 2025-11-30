@@ -1,12 +1,14 @@
-import Lottie from "react-lottie";
+import Lottie from "lottie-react";
 
 export function Lottieanimacion({ alto, ancho, animacion }) {
-    const defaultOptions={
-        loop:true,
-        autoplay: true,
-        animationData:animacion
-    }
-  return (<>
-<Lottie options={defaultOptions} height={`${alto}px`} width={`${ancho}px`} isClickToPauseDisabled/>
-  </>);
+  return (
+    <>
+      <Lottie 
+        animationData={animacion} 
+        loop={true}
+        autoplay={true}
+        style={{ height: `${alto}px`, width: `${ancho}px` }} 
+      />
+    </>
+  );
 }

@@ -27,8 +27,9 @@ export function TablaCategorias({
   const [datas, setData] = useState(data);
   const [columnFilters, setColumnFilters] = useState([]);
 
-  const { eliminarCategoria } = useCategoriasStore();
-  function eliminar(p) {
+  const { eliminarCategoria, validarEliminarCategoria } = useCategoriasStore();
+  
+  async function eliminar(p) {
     if (p.nombre === "General") {
       Swal.fire({
         icon: "error",
@@ -38,20 +39,68 @@ export function TablaCategorias({
       });
       return;
     }
-    Swal.fire({
-      title: "¿Estás seguro(a)(e)?",
-      text: "Una vez eliminado, ¡no podrá recuperar este registro!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Si, eliminar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await eliminarCategoria({ id: p.id });
+
+    try {
+      // Primero validar qué pasará con la categoría
+      const validacion = await validarEliminarCategoria({ id: p.id });
+      
+      // Si tiene productos asociados, mostrar advertencia clara
+      if (validacion.productos_asociados > 0) {
+        Swal.fire({
+          title: "No se puede eliminar",
+          html: `
+            <p>Esta categoría tiene <strong>${validacion.productos_asociados}</strong> producto(s) asociado(s).</p>
+            <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+              Debe reasignar o eliminar los productos antes de poder eliminar esta categoría.
+            </p>
+          `,
+          icon: "warning",
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "Entendido",
+        });
+        return;
       }
-    });
+
+      // Si puede eliminarse sin problemas
+      const result = await Swal.fire({
+        title: "¿Estás seguro(a)(e)?",
+        text: "Una vez eliminada, ¡no podrá recuperar esta categoría!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+      });
+
+      if (result.isConfirmed) {
+        const resultado = await eliminarCategoria({ id: p.id, icono: p.icono });
+        
+        if (resultado.exito) {
+          Swal.fire({
+            icon: "success",
+            title: "Eliminado",
+            text: resultado.mensaje,
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: resultado.mensaje,
+          });
+        }
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "Ocurrió un error al procesar la solicitud",
+      });
+    }
   }
+
   function editar(data) {
     if (data.nombre === "General") {
       Swal.fire({

@@ -1,275 +1,316 @@
 import styled from "styled-components";
-import fondocuadros from "../../assets/fondocuadros.svg";
 import { Link } from "react-router-dom";
-import { useEffect } from "react";
-import { useModulosStore } from "../../index";
+import { Icon } from "@iconify/react";
 import { usePermisosStore } from "../../store/PermisosStore";
+
+// Mapeo de módulos a iconos de Iconify (lucide)
+const iconMap = {
+  "Categorias de productos": "lucide:tags",
+  "Productos": "lucide:package",
+  "Empresa": "lucide:building-2",
+  "Clientes": "lucide:users",
+  "Proveedores": "lucide:truck",
+  "Métodos de pago": "lucide:credit-card",
+  "Sucursales y cajas": "lucide:store",
+  "Usuarios": "lucide:user-cog",
+  "Impresoras": "lucide:printer",
+  "Almacenes": "lucide:warehouse",
+  "Configuración de ticket": "lucide:receipt",
+  "Serialización de comprobantes": "lucide:file-text",
+};
+
+// Colores suaves para cada módulo
+const colorMap = {
+  "Categorias de productos": { bg: "#e8f5e9", icon: "#43a047" },
+  "Productos": { bg: "#e3f2fd", icon: "#1976d2" },
+  "Empresa": { bg: "#fce4ec", icon: "#c2185b" },
+  "Clientes": { bg: "#fff3e0", icon: "#ef6c00" },
+  "Proveedores": { bg: "#f3e5f5", icon: "#7b1fa2" },
+  "Métodos de pago": { bg: "#e0f2f1", icon: "#00897b" },
+  "Sucursales y cajas": { bg: "#fff8e1", icon: "#ffa000" },
+  "Usuarios": { bg: "#e8eaf6", icon: "#3949ab" },
+  "Impresoras": { bg: "#fafafa", icon: "#616161" },
+  "Almacenes": { bg: "#efebe9", icon: "#6d4c41" },
+  "Configuración de ticket": { bg: "#e1f5fe", icon: "#0288d1" },
+  "Serialización de comprobantes": { bg: "#f1f8e9", icon: "#689f38" },
+};
+
+const defaultColor = { bg: "#f5f5f5", icon: "#757575" };
+const defaultIcon = "lucide:settings";
+
 export function ConfiguracionesTemplate() {
-  const {dataPermisosConfiguracion} = usePermisosStore();
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      document.querySelectorAll(".card").forEach((card) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty("--mouse-x", `${x}px`);
-        card.style.setProperty("--mouse-y", `${y}px`);
-      });
-    };
-    const cardsContainer = document.getElementById("cards");
-    if (cardsContainer) {
-      cardsContainer.addEventListener("mousemove", handleMouseMove);
-      return () => {
-        cardsContainer.removeEventListener("mousemove", handleMouseMove);
-      };
-    }
-  }, []);
+  const { dataPermisosConfiguracion } = usePermisosStore();
+
+  if (!dataPermisosConfiguracion || !Array.isArray(dataPermisosConfiguracion)) {
+    return (
+      <Container>
+        <EmptyState>
+          <Icon icon="lucide:loader" className="spin" />
+          <p>Cargando módulos de configuración...</p>
+        </EmptyState>
+      </Container>
+    );
+  }
+
+  if (dataPermisosConfiguracion.length === 0) {
+    return (
+      <Container>
+        <EmptyState>
+          <Icon icon="lucide:lock" style={{ fontSize: 48, color: "#ccc" }} />
+          <h3>No tienes acceso a módulos de configuración</h3>
+          <p>Contacta al administrador para obtener permisos</p>
+        </EmptyState>
+      </Container>
+    );
+  }
+
   return (
     <Container>
-      <div id="cards">
-        {dataPermisosConfiguracion.map((item, index) => {
-          return (
-            <Link
-              to={item.modulos.link}
-              className={item.modulos.state ? "card" : "card false"}
-              key={index}
-            >
-              <div className="card-content">
-                <div className="card-image">
-                  <img src={item.modulos.icono} />
-                </div>
+      <Header>
+        <Icon icon="lucide:settings" />
+        <div>
+          <h1>Configuración</h1>
+          <p>Administra los módulos de tu sistema</p>
+        </div>
+      </Header>
 
-                <div className="card-info-wrapper">
-                  <div className="card-info">
-                    <i className="fa-duotone fa-unicorn"></i>
-                    <div className="card-info-title">
-                      <h3>{item.modulos.nombre}</h3>
-                      <h4>{item.modulos.descripcion}</h4>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
+      <CardsGrid>
+        {dataPermisosConfiguracion.map((item, index) => {
+          const moduleName = item.modulos.nombre;
+          const icon = iconMap[moduleName] || defaultIcon;
+          const colors = colorMap[moduleName] || defaultColor;
+          const linkTo = item.modulos.link;
+          // Si state es undefined o true, el módulo está habilitado
+          const isDisabled = item.modulos.state === false;
+          
+          return (
+            <Card
+              to={linkTo}
+              key={index}
+              $disabled={isDisabled}
+            >
+              <IconWrapper $bgColor={colors.bg}>
+                <Icon icon={icon} style={{ color: colors.icon, fontSize: 28 }} />
+              </IconWrapper>
+              <CardContent>
+                <h3>{moduleName}</h3>
+                <p>{item.modulos.descripcion}</p>
+              </CardContent>
+              <ArrowIcon>
+                <Icon icon="lucide:chevron-right" />
+              </ArrowIcon>
+            </Card>
           );
         })}
-      </div>
+      </CardsGrid>
     </Container>
   );
 }
+
 const Container = styled.div`
-  background-image: url(${fondocuadros});
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat, repeat;
-  align-items: center;
-  background-color: ${({ theme }) => theme.bgtotal};
+  min-height: calc(100vh - 50px);
+  margin-top: 50px;
+  padding: 30px;
+  background: #f5f5f5;
+
+  @media (max-width: 768px) {
+    padding: 20px 15px;
+  }
+`;
+
+const Header = styled.div`
   display: flex;
-  height:calc(100vh - 50px);
-   margin-top:50px;
-  justify-content: center;
-  width: 100%;
-  align-items: flex-start;
- 
-  #cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    max-width: 916px;
-    width: calc(100% - 20px);
-    padding: 10px;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 30px;
+  padding: 20px 25px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  > svg {
+    font-size: 32px;
+    color: #6366f1;
   }
 
-  #cards:hover > .card::after {
-    opacity: 1;
-  }
-
-  .card {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    height: 260px;
-    flex-direction: column;
-    position: relative;
-    width: 300px;
-    &:hover {
-      .card-image {
-        img {
-          filter: grayscale(0);
-        }
-      }
-    }
-  }
-
-  .card:hover::before {
-    opacity: 1;
-  }
-
-  .card::before,
-  .card::after {
-    border-radius: inherit;
-    content: "";
-    height: 100%;
-    left: 0px;
-    opacity: 0;
-    position: absolute;
-    top: 0px;
-    transition: opacity 500ms;
-    width: 100%;
-  }
-
-  .card::before {
-    background: radial-gradient(
-      800px circle at var(--mouse-x) var(--mouse-y),
-      rgba(255, 255, 255, 0.06),
-      transparent 40%
-    );
-    z-index: 3;
-  }
-
-  .card::after {
-    background: radial-gradient(
-      600px circle at var(--mouse-x) var(--mouse-y),
-      rgba(255, 255, 255, 0.4),
-      transparent 40%
-    );
-    z-index: 1;
-  }
-
-  .card > .card-content {
-    background-color: ${({ theme }) => theme.bgcards};
-    border-radius: inherit;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    inset: 1px;
-    padding: 10px;
-    position: absolute;
-    z-index: 2;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  span {
-    color: ${({ theme }) => theme.colorsubtitlecard};
-    font-family: "Rubik", sans-serif;
+  h1 {
+    font-size: 1.5rem;
     font-weight: 600;
-    margin: 0px;
+    color: #1a1a2e;
+    margin: 0;
   }
 
-  i {
-    color: ${({ theme }) => theme.colorsubtitlecard};
+  p {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 4px 0 0 0;
   }
 
-  .card-image {
-    align-items: center;
-    display: flex;
-    height: 140px;
-    justify-content: center;
+  @media (max-width: 768px) {
+    padding: 16px 20px;
+    
+    > svg {
+      font-size: 28px;
+    }
 
-    img {
-      transition: 0.3s;
-      height: 70%;
-      filter: grayscale(100%);
+    h1 {
+      font-size: 1.25rem;
+    }
+  }
+`;
+
+const CardsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+`;
+
+const Card = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 16px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  opacity: ${props => props.$disabled ? 0.5 : 1};
+  pointer-events: ${props => props.$disabled ? 'none' : 'auto'};
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+    h3 {
+      color: #6366f1;
     }
   }
 
-  .card-info-wrapper {
-    align-items: center;
-    display: flex;
-    flex-grow: 1;
-    justify-content: flex-start;
-    padding: 0px 20px;
+  &:active {
+    transform: translateY(0);
   }
 
-  .card-info {
-    align-items: flex-start;
-    display: flex;
-    gap: 10px;
+  @media (max-width: 768px) {
+    padding: 16px;
+    gap: 14px;
   }
+`;
 
-  .card-info > i {
-    font-size: 1em;
-    height: 20px;
-    line-height: 20px;
-  }
+const IconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: ${props => props.$bgColor || '#f5f5f5'};
+  flex-shrink: 0;
 
-  .card-info-title > h3 {
-    font-size: 1.1em;
-    line-height: 20px;
-  }
+  @media (max-width: 768px) {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
 
-  .card-info-title > h4 {
-    color: ${({ theme }) => theme.colortitlecard};
-    font-size: 0.85em;
-    margin-top: 8px;
-    font-weight: 500;
-  }
-  #cards:hover > .card::after {
-    opacity: 1;
-  }
-  &::before {
-    background: radial-gradient(
-      800px circle at var(--mouse-x) var(--mouse-y),
-      rgba(255, 255, 255, 0.06),
-      transparent 40%
-    );
-    z-index: 3;
-  }
-
-  &::after {
-    background: radial-gradient(
-      600px circle at var(--mouse-x) var(--mouse-y),
-      ${(props) => props.$color0},
-      transparent 40%
-    );
-    z-index: 1;
-  }
-
-  @media (max-width: 1000px) {
-    align-items: flex-start;
-    overflow: auto;
-
-    #cards {
-      max-width: 1000px;
-    }
-
-    .card {
-      flex-shrink: 1;
-      width: calc(50% - 4px);
+    svg {
+      font-size: 24px !important;
     }
   }
+`;
 
-  @media (max-width: 500px) {
-    .card {
-      height: 180px;
+const CardContent = styled.div`
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 0;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  p {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin: 4px 0 0 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (max-width: 768px) {
+    h3 {
+      font-size: 0.9375rem;
     }
 
-    .card-image {
-      height: 80px;
+    p {
+      font-size: 0.75rem;
     }
+  }
+`;
 
-    .card-image > i {
-      font-size: 3em;
-    }
+const ArrowIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 
-    .card-info-wrapper {
-      padding: 0px 10px;
-    }
+  svg {
+    font-size: 20px;
+  }
 
-    .card-info > i {
-      font-size: 0.8em;
-    }
+  ${Card}:hover & {
+    color: #6366f1;
+    transform: translateX(4px);
+  }
+`;
 
-    .card-info-title > h3 {
-      font-size: 0.9em;
-    }
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
-    .card-info-title > h4 {
-      font-size: 0.8em;
-      margin-top: 4px;
-    }
+  .spin {
+    font-size: 32px;
+    color: #6366f1;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 16px 0 8px 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
   }
 `;

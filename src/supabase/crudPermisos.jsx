@@ -8,12 +8,21 @@ export async function MostrarPermisos(p) {
   return data;
 }
 export async function MostrarPermisosConfiguracion(p) {
-  const { data } = await supabase
+  if (!p?.id_usuario) {
+    return [];
+  }
+
+  const { data, error } = await supabase
     .from(tabla)
     .select(`*, modulos!inner(*)`)
     .eq("modulos.etiquetas", "#configuracion")
     .eq("id_usuario", p.id_usuario);
-  return data;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data || [];
 }
 export async function MostrarPermisosDefault() {
   const { data } = await supabase.from("permisos_dafault").select();

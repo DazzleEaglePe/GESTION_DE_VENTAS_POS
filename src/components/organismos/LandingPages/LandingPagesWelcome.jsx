@@ -1,404 +1,526 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { CardFuncion } from "./CardFuncion";
 import { Device } from "../../../styles/breakpoints";
 import ScrollReveal from "scrollreveal";
 import { BtnLink } from "../../moleculas/BtnLink";
 import { useUsuariosStore } from "../../../store/UsuariosStore";
+import { Link } from "react-router-dom";
+
 export const LandingPagesWelcome = () => {
-  const {datausuarios} = useUsuariosStore()
+  const { datausuarios } = useUsuariosStore();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
-    ScrollReveal().reveal(".left-section", {
-      origin: "left",
-      distance: "100px",
-      duration: 1000,
-      easing: "ease-in-out",
+    ScrollReveal().reveal(".fade-up", {
+      origin: "bottom",
+      distance: "30px",
+      duration: 800,
+      easing: "ease-out",
+      interval: 100,
     });
 
-    ScrollReveal().reveal(".right-section", {
-      origin: "right",
-      distance: "100px",
-      duration: 1000,
-      easing: "ease-in-out",
-    });
-    ScrollReveal().reveal(".footer-section", {
-      origin: "bottom",
-      distance: "100px",
-      duration: 1000,
-      easing: "ease-in-out",
-      delay: 200,
-    });
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const isLoggedIn = !!datausuarios?.id;
 
   return (
     <Container>
-      <ContentSection>
-        <SubContentSection>
-          <LeftSection className="left-section">
-            <h1>POS VENTAS CON REACT.JS {datausuarios?.id} </h1>
-            <Step>
-              <IconPlaceholder>
-                <img src="https://i.ibb.co/h19LCXP/aprendiendo.png" />
-              </IconPlaceholder>
-              <Text>
-                <Title>Aprende desde cero</Title>
-                <Description>
-                  Descubre cómo crear tu sistema de postventa profesional paso a
-                  paso.
-                </Description>
-              </Text>
-            </Step>
-            <Step>
-              <IconPlaceholder>
-                <img src="https://i.ibb.co/RBXt8Fs/taladro-de-mano.png" />
-              </IconPlaceholder>
-              <Text>
-                <Title>Domina herramientas esenciales</Title>
-                <Description>
-                  Desarrolla habilidades clave en programación.
-                </Description>
-              </Text>
-            </Step>
-            <Step>
-              <IconPlaceholder>
-                <img src="https://i.ibb.co/QPFxqC3/ejecutante.png" />
-              </IconPlaceholder>
-              <Text>
-                <Title>Aplica lo aprendido</Title>
-                <Description>
-                  Desde la idea inicial hasta la implementación.
-                </Description>
-              </Text>
-            </Step>
-            
-            <div style={{ display: "flex", gap: "10px" }}>
-            <BtnLink url={"https://codigo369.com/detallecurso/24"} color={"#fff"} bgcolor={"#ff6a00"} titulo={"inscribete aquí"} />
-              <BtnLink url={"https://t.me/ada369react"} color={"#2f2f2f"} bgcolor={"#ffffff"} titulo={"+ grupo telegram"} />
-            </div>
-          </LeftSection>
-          <RightSection className="right-section">
-            <MockupImage>
-              <CardFuncion
-                top="10px"
-                bgcontentimagen={"#fccdb8"}
-                left={"-50px"}
-                title={"Multi-empresa"}
-                imagen={"https://i.ibb.co/HCF7jnx/escaparate.png"}
-              />
-              <CardFuncion
-                top="110px"
-                bgcontentimagen={"#e3d4cc"}
-                left={"-20px"}
-                title={"Multi-sucursal"}
-                imagen={"https://i.ibb.co/MV6xZz4/franquicia.png"}
-              />
-              <CardFuncion
-                top="210px"
-                bgcontentimagen={"#aee0fd"}
-                left={"-50px"}
-                title={"Multi-caja"}
-                imagen={
-                  "https://i.ibb.co/3dZfQzF/caja-registradora.png"
-                }
-              />
-              <CardFuncion
-                top="310px"
-                bgcontentimagen={"#fdc2b7"}
-                left={"-20px"}
-                title={"Multi-almacen"}
-                imagen={
-                  "https://qkzybkelsdmoezaaypou.supabase.co/storage/v1/object/public/imagenes/modulos/almacen.png"
-                }
-              />
-               <CardFuncion
-                top="410px"
-                bgcontentimagen={"#52e0f9"}
-                left={"-50px"}
-                title={"Imprime directo"}
-                subtitle={"sin cuadro de diálogo"}
-                imagen={
-                  "https://qkzybkelsdmoezaaypou.supabase.co/storage/v1/object/public/imagenes/modulos/impresora.png"
-                }
-              />
-            </MockupImage>
-          </RightSection>
-        </SubContentSection>
-      </ContentSection>
+      {/* Navbar */}
+      <Navbar $scrolled={scrolled}>
+        <NavContent>
+          <NavLogo to="/">
+            <LogoBox>M&L</LogoBox>
+            <LogoText>Minimarket</LogoText>
+          </NavLogo>
 
-      <Footer className="footer-section">
-        <FooterTitle>Tecnologias utilizadas:</FooterTitle>
-        <FooterContent>
-          <FooterItem>
-            <FooterIcon>
-              <img src="https://i.ibb.co/3vfgvTB/mujer-de-negocios.png" />
-            </FooterIcon>
-            <FooterText>
-              <FooterTextTitle>FRONTEND</FooterTextTitle>
-              <FooterDescription>
-                React.js | TansTask | Zustand | Styled Components
-              </FooterDescription>
-            </FooterText>
-          </FooterItem>
-          <FooterItem>
-            <FooterIcon>
-              <img src="https://i.ibb.co/4fDChm8/nalga-1.png" />
-            </FooterIcon>
-            <FooterText>
-              <FooterTextTitle>BACKEND</FooterTextTitle>
-              <FooterDescription>PostgreSQL | SUPABASE</FooterDescription>
-            </FooterText>
-          </FooterItem>
-        </FooterContent>
+          <NavLinks $open={menuOpen}>
+            {isLoggedIn ? (
+              <>
+                <NavLink to="/dashboard">Dashboard</NavLink>
+                <NavLink to="/pos">Punto de Venta</NavLink>
+                <NavLink to="/inventario">Inventario</NavLink>
+                <NavLink to="/reportes">Reportes</NavLink>
+                <NavLink to="/configuracion">Configuración</NavLink>
+                <NavDivider />
+                <NavLink to="/miperfil">Mi Perfil</NavLink>
+              </>
+            ) : (
+              <>
+                <NavLinkScroll href="#caracteristicas">Características</NavLinkScroll>
+                <NavLinkScroll href="#tecnologia">Tecnología</NavLinkScroll>
+              </>
+            )}
+          </NavLinks>
+
+          <NavActions>
+            {isLoggedIn ? (
+              <NavButton to="/pos">Ir al POS</NavButton>
+            ) : (
+              <NavButton to="/login">Iniciar Sesión</NavButton>
+            )}
+            <MenuToggle onClick={() => setMenuOpen(!menuOpen)}>
+              <MenuIcon $open={menuOpen}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </MenuIcon>
+            </MenuToggle>
+          </NavActions>
+        </NavContent>
+      </Navbar>
+
+      {/* Hero */}
+      <HeroSection>
+        <HeroContent className="fade-up">
+          <Logo>M&L</Logo>
+          <Title>Minimarket Minimarket</Title>
+          <Subtitle>Sistema de Gestión de Ventas</Subtitle>
+          <Location>Ica, Perú — 2025</Location>
+          
+          <ButtonGroup>
+            <BtnLink 
+              url={isLoggedIn ? "/pos" : "/login"} 
+              color={"#fff"} 
+              bgcolor={"#111"} 
+              titulo={isLoggedIn ? "Ir al Sistema" : "Iniciar Sesión"} 
+            />
+          </ButtonGroup>
+        </HeroContent>
+      </HeroSection>
+
+      {/* Features */}
+      <FeaturesSection id="caracteristicas">
+        <FeaturesGrid>
+          <FeatureItem className="fade-up">
+            <FeatureNumber>01</FeatureNumber>
+            <FeatureTitle>Punto de Venta</FeatureTitle>
+            <FeatureDesc>Procesa ventas de forma rápida y sencilla</FeatureDesc>
+          </FeatureItem>
+          
+          <FeatureItem className="fade-up">
+            <FeatureNumber>02</FeatureNumber>
+            <FeatureTitle>Inventario</FeatureTitle>
+            <FeatureDesc>Control de stock en tiempo real</FeatureDesc>
+          </FeatureItem>
+          
+          <FeatureItem className="fade-up">
+            <FeatureNumber>03</FeatureNumber>
+            <FeatureTitle>Reportes</FeatureTitle>
+            <FeatureDesc>Análisis detallado de ventas</FeatureDesc>
+          </FeatureItem>
+          
+          <FeatureItem className="fade-up">
+            <FeatureNumber>04</FeatureNumber>
+            <FeatureTitle>Clientes</FeatureTitle>
+            <FeatureDesc>Gestión de clientes y proveedores</FeatureDesc>
+          </FeatureItem>
+        </FeaturesGrid>
+      </FeaturesSection>
+
+      {/* Info */}
+      <InfoSection id="tecnologia" className="fade-up">
+        <InfoContent>
+          <InfoLabel>Plataforma</InfoLabel>
+          <InfoText>
+            Sistema integral diseñado para la gestión eficiente del minimarket. 
+            Control total de ventas, inventario y finanzas.
+          </InfoText>
+        </InfoContent>
+        <InfoDivider />
+        <InfoContent>
+          <InfoLabel>Tecnología</InfoLabel>
+          <TechList>
+            <TechItem>React.js</TechItem>
+            <TechItem>PostgreSQL</TechItem>
+            <TechItem>Supabase</TechItem>
+          </TechList>
+        </InfoContent>
+      </InfoSection>
+
+      {/* Footer */}
+      <Footer>
+        <FooterText>© 2025 Minimarket Minimarket</FooterText>
       </Footer>
     </Container>
   );
 };
 
 const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-  padding: 20px;
-  @media ${Device.desktop} {
-    height: calc(100vh - 40px);
-  }
-`;
-const SubContentSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  @media ${Device.desktop} {
-    flex-direction: row;
-    justify-content: space-between;
-    width: 60%;
-  }
+  min-height: 100vh;
+  background: #fafafa;
 `;
 
-const ContentSection = styled.div`
+// Navbar Styles
+const Navbar = styled.nav`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: ${props => props.$scrolled ? 'rgba(255, 255, 255, 0.95)' : 'transparent'};
+  backdrop-filter: ${props => props.$scrolled ? 'blur(10px)' : 'none'};
+  border-bottom: ${props => props.$scrolled ? '1px solid #eee' : 'none'};
+  transition: all 0.3s ease;
+`;
+
+const NavContent = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100%;
-  width: 100%;
+  justify-content: space-between;
 `;
 
-const LeftSection = styled.div`
+const NavLogo = styled(Link)`
   display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  h1 {
-    text-align: center;
-    font-size:35px;
-  }
-  @media ${Device.desktop} {
-    align-items: flex-start;
-  }
-`;
-
-const Step = styled.div`
-  display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 10px;
-  text-align: center;
-  @media ${Device.desktop} {
-    flex-direction: row;
-    align-items: flex-start;
-    text-align: left;
+  text-decoration: none;
+`;
+
+const LogoBox = styled.div`
+  width: 36px;
+  height: 36px;
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const LogoText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  display: none;
+
+  @media ${Device.tablet} {
+    display: block;
   }
 `;
 
-const IconPlaceholder = styled.div`
+const NavLinks = styled.div`
+  display: ${props => props.$open ? 'flex' : 'none'};
+  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+  gap: 8px;
+
+  @media ${Device.tablet} {
+    display: flex;
+    flex-direction: row;
+    position: static;
+    background: transparent;
+    padding: 0;
+    border: none;
+    gap: 32px;
+  }
+`;
+
+const NavLink = styled(Link)`
+  font-size: 14px;
+  color: #666;
+  text-decoration: none;
+  padding: 8px 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #111;
+  }
+
+  @media ${Device.tablet} {
+    padding: 0;
+  }
+`;
+
+const NavLinkScroll = styled.a`
+  font-size: 14px;
+  color: #666;
+  text-decoration: none;
+  padding: 8px 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #111;
+  }
+
+  @media ${Device.tablet} {
+    padding: 0;
+  }
+`;
+
+const NavDivider = styled.div`
+  width: 100%;
+  height: 1px;
+  background: #eee;
+
+  @media ${Device.tablet} {
+    width: 1px;
+    height: 20px;
+  }
+`;
+
+const NavActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+const NavButton = styled(Link)`
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: #111;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #333;
+  }
+`;
+
+const MenuToggle = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
-  background-color: #e0e0e0;
-  border-radius: 50%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
-  border: 4px solid #f0f0f0;
-  img {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-  }
-  @media ${Device.tablet} {
-  }
-`;
-
-const Text = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Title = styled.h3`
-  font-size: 16px;
-  font-weight: bold;
-  margin: 0;
-
-  @media ${Device.desktop} {
-    font-size: 18px;
-  }
-`;
-
-const Description = styled.p`
-  font-size: 13px;
-  margin: 5px 0 0;
-
-  @media ${Device.desktop} {
-    font-size: 14px;
-  }
-`;
-
-const Highlight = styled.span`
-  color: #0077ff;
-  cursor: pointer;
-`;
-
-const RegisterButton = styled.button`
-  background-color: #ff6a00;
-  color: white;
+  background: transparent;
   border: none;
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 5px;
   cursor: pointer;
-  align-self: center;
-  &:hover {
-    background-color: #e65c00;
-  }
 
-  @media ${Device.desktop} {
-    align-self: flex-start;
-    font-size: 16px;
+  @media ${Device.tablet} {
+    display: none;
   }
 `;
 
-const RightSection = styled.div`
-  width: 100%;
+const MenuIcon = styled.div`
+  width: 20px;
+  height: 14px;
+  position: relative;
+
+  span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #111;
+    transition: all 0.3s;
+
+    &:nth-child(1) {
+      top: ${props => props.$open ? '6px' : '0'};
+      transform: ${props => props.$open ? 'rotate(45deg)' : 'none'};
+    }
+
+    &:nth-child(2) {
+      top: 6px;
+      opacity: ${props => props.$open ? '0' : '1'};
+    }
+
+    &:nth-child(3) {
+      top: ${props => props.$open ? '6px' : '12px'};
+      transform: ${props => props.$open ? 'rotate(-45deg)' : 'none'};
+    }
+  }
+`;
+
+const HeroSection = styled.section`
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px 60px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+`;
+
+const HeroContent = styled.div`
+  text-align: center;
+  max-width: 500px;
+`;
+
+const Logo = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: #111;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  margin-bottom: 32px;
+  letter-spacing: -0.5px;
+`;
+
+const Title = styled.h1`
+  font-size: 28px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+
+  @media ${Device.tablet} {
+    font-size: 36px;
+  }
+`;
+
+const Subtitle = styled.p`
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 4px;
+`;
+
+const Location = styled.p`
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 32px;
+`;
+
+const ButtonGroup = styled.div`
   display: flex;
   justify-content: center;
-  position: relative;
-  border-left: none;
-  margin-top: 20px;
+`;
 
-  @media ${Device.desktop} {
-    margin-top: 0;
+const FeaturesSection = styled.section`
+  padding: 60px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+
+  @media ${Device.tablet} {
+    padding: 80px 24px;
   }
 `;
 
-const MockupImage = styled.div`
-  width: 250px;
-  height: 500px;
-  background-color: #e0e0e0;
-  border-radius: 20px;
-  border: 6px solid #fff;
-  position: relative;
-  &::before {
-    content: "";
-    height: 360px;
-    width: 360px;
-    background-color: rgba(0, 51, 160, 0.1);
-    position: absolute;
-    z-index: -1;
-    margin: auto;
-    bottom: 20%;
-    left: -60px;
-    border-radius: 50%;
-    animation: palpitar 3s infinite;
-  }
-  @keyframes palpitar {
-      0% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.1);
-      }
-      100% {
-        transform: scale(1);
-      }
-    }
-  @media ${Device.desktop} {
-    width: 250px;
-    height: 500px;
+const FeaturesGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+
+  @media ${Device.tablet} {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 48px;
   }
 `;
 
-const Footer = styled.div`
-  background-color: #0033a0;
-  color: white;
-  width: 100%;
-  text-align: center;
-  border-radius: 8px;
-  padding: 10px 0 10px 0;
+const FeatureItem = styled.div`
+  padding: 24px 0;
+  border-bottom: 1px solid #eee;
+
+  @media ${Device.tablet} {
+    border-bottom: none;
+  }
 `;
 
-const FooterTitle = styled.h4`
+const FeatureNumber = styled.span`
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 12px;
+`;
+
+const FeatureTitle = styled.h3`
   font-size: 18px;
-
-  @media ${Device.desktop} {
-    font-size: 20px;
-  }
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 8px;
 `;
 
-const FooterContent = styled.div`
+const FeatureDesc = styled.p`
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+`;
+
+const InfoSection = styled.section`
+  background: #fff;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  padding: 48px 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  @media ${Device.desktop} {
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+
+  @media ${Device.tablet} {
     flex-direction: row;
-    justify-content: center;
-    gap: 40px;
+    align-items: flex-start;
+    padding: 60px 24px;
   }
 `;
 
-const FooterItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-  @media ${Device.desktop} {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
+const InfoContent = styled.div`
+  flex: 1;
+`;
+
+const InfoDivider = styled.div`
+  width: 100%;
+  height: 1px;
+  background: #eee;
+
+  @media ${Device.tablet} {
+    width: 1px;
+    height: 80px;
+    margin: 0 48px;
   }
 `;
 
-const FooterIcon = styled.div`
-  width: 60px;
-  height: 60px;
-  background-color: #fcece4;
-  border-radius: 50%;
-  img {
-    width: 100%;
-  }
-  @media ${Device.desktop} {
-    width: 60px;
-    height: 60px;
-  }
+const InfoLabel = styled.span`
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 12px;
 `;
 
-const FooterText = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const FooterTextTitle = styled.h5`
+const InfoText = styled.p`
   font-size: 15px;
-  margin: 0;
-
-  @media ${Device.desktop} {
-    font-size: 16px;
-  }
+  color: #444;
+  line-height: 1.7;
 `;
 
-const FooterDescription = styled.p`
-  font-size: 13px;
+const TechList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
 
-  @media ${Device.desktop} {
-    font-size: 14px;
-  }
+const TechItem = styled.span`
+  font-size: 13px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 6px;
+`;
+
+const Footer = styled.footer`
+  padding: 32px 24px;
+  text-align: center;
+`;
+
+const FooterText = styled.p`
+  font-size: 13px;
+  color: #999;
 `;

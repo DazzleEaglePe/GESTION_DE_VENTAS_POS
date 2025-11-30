@@ -1,13 +1,9 @@
 import styled from "styled-components";
-import {
-  Checkbox1,
-  ContentAccionesTabla,
-  Paginacion,
-  useProductosStore,
-} from "../../../index";
+import { Paginacion, useProductosStore } from "../../../index";
+import { useUsuariosStore } from "../../../store/UsuariosStore";
 import Swal from "sweetalert2";
-import { v } from "../../../styles/variables";
 import { useState } from "react";
+import { Icon } from "@iconify/react";
 import {
   flexRender,
   getCoreRowModel,
@@ -16,219 +12,274 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { FaArrowsAltV } from "react-icons/fa";
+
 export function TablaProductos({
   data,
   SetopenRegistro,
   setdataSelect,
   setAccion,
 }) {
-  if (data == null) return;
   const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
-  const [columnFilters, setColumnFilters] = useState([]);
+  const [columnFilters] = useState([]);
 
-  const { eliminarProductos } = useProductosStore();
-  function eliminar(p) {
+  const { eliminarProductos, validarEliminarProducto } = useProductosStore();
+  const { datausuarios } = useUsuariosStore();
+
+  async function eliminar(p) {
     if (p.nombre === "General") {
       Swal.fire({
         icon: "error",
-        title: "Oops...",
-        text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
+        title: "Acción no permitida",
+        text: "Este registro no se puede modificar.",
       });
       return;
     }
-    Swal.fire({
-      title: "¿Estás seguro(a)(e)?",
-      text: "Una vez eliminado, ¡no podrá recuperar este registro!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Si, eliminar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        await eliminarProductos({ id: p.id });
+
+    try {
+      const validacion = await validarEliminarProducto({ id: p.id });
+
+      if (validacion?.ventas_asociadas > 0) {
+        const result = await Swal.fire({
+          title: "Producto con ventas",
+          html: `
+            <p>Este producto tiene <strong>${validacion.ventas_asociadas}</strong> venta(s).</p>
+            <p>Será <strong>desactivado</strong> para preservar el historial.</p>
+          `,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#9ca3af",
+          confirmButtonText: "Desactivar",
+          cancelButtonText: "Cancelar",
+        });
+
+        if (result.isConfirmed) {
+          const resultado = await eliminarProductos({
+            id: p.id,
+            id_usuario: datausuarios?.id,
+            forzarDesactivacion: true,
+          });
+
+          if (resultado.exito) {
+            Swal.fire({
+              icon: "success",
+              title: "Producto desactivado",
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          }
+        }
+        return;
       }
-    });
+
+      if (validacion.tiene_stock && validacion.stock_total > 0) {
+        const result = await Swal.fire({
+          title: "Producto con stock",
+          html: `<p>Tiene <strong>${validacion.stock_total}</strong> unidades en stock.</p>`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#ef4444",
+          cancelButtonColor: "#9ca3af",
+          confirmButtonText: "Desactivar",
+          cancelButtonText: "Cancelar",
+        });
+
+        if (result.isConfirmed) {
+          const resultado = await eliminarProductos({
+            id: p.id,
+            id_usuario: datausuarios?.id,
+            forzarDesactivacion: true,
+          });
+
+          if (resultado.exito) {
+            Swal.fire({
+              icon: "success",
+              title: "Producto desactivado",
+              text: resultado.mensaje,
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          }
+        }
+        return;
+      }
+
+      const result = await Swal.fire({
+        title: "¿Desactivar producto?",
+        text: "Podrás restaurarlo desde productos inactivos.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#9ca3af",
+        confirmButtonText: "Desactivar",
+        cancelButtonText: "Cancelar",
+      });
+
+      if (result.isConfirmed) {
+        const resultado = await eliminarProductos({
+          id: p.id,
+          id_usuario: datausuarios?.id,
+          forzarDesactivacion: true,
+        });
+
+        if (resultado.exito) {
+          Swal.fire({
+            icon: "success",
+            title: "Producto desactivado",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        }
+      }
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.message || "Ocurrió un error",
+      });
+    }
   }
+
   function editar(data) {
-  
     SetopenRegistro(true);
     setdataSelect(data);
     setAccion("Editar");
   }
+
   const columns = [
     {
       accessorKey: "nombre",
-      header: "Descripcion",
-      cell: (info) => (
-        <td data-title="DESCRIPCION" className="ContentCell">
-          <span>{info.getValue()}</span>
-        </td>
-      ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
+      header: "Producto",
+      cell: (info) => <ProductName>{info.getValue()}</ProductName>,
     },
     {
       accessorKey: "p_venta",
-      header: "P. venta",
+      header: "P. Venta",
       cell: (info) => (
-        <td data-title="P. venta" className="ContentCell">
-          <span>{info.getValue()}</span>
-        </td>
+        <PriceBadge>
+          <Icon icon="lucide:dollar-sign" width="14" />
+          {Number(info.getValue() || 0).toFixed(2)}
+        </PriceBadge>
       ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
     {
       accessorKey: "p_compra",
-      header: "P. compra",
+      header: "P. Compra",
       cell: (info) => (
-        <td data-title="P. compra" className="ContentCell">
-          <span>{info.getValue()}</span>
-        </td>
+        <PriceBadgeGray>
+          <Icon icon="lucide:dollar-sign" width="14" />
+          {Number(info.getValue() || 0).toFixed(2)}
+        </PriceBadgeGray>
       ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
     {
       accessorKey: "sevende_por",
-      header: "Se vende por",
-      cell: (info) => (
-        <td data-title="Se vende por" className="ContentCell">
-          <span>{info.getValue()}</span>
-        </td>
-      ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
+      header: "Venta por",
+      cell: (info) => <UnitBadge>{info.getValue() || "UNIDAD"}</UnitBadge>,
     },
     {
       accessorKey: "maneja_inventarios",
-      header: "Inventarios",
+      header: "Inventario",
       cell: (info) => (
-        <td data-title="Inventarios" className="ContentCell">
-          <Checkbox1 isChecked={info.getValue()}/>
-        </td>
+        <InventoryBadge $active={info.getValue()}>
+          <Icon
+            icon={info.getValue() ? "lucide:check" : "lucide:x"}
+            width="14"
+          />
+        </InventoryBadge>
       ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
-
     {
       accessorKey: "acciones",
       header: "",
       enableSorting: false,
       cell: (info) => (
-        <div data-title="Acciones" className="ContentCell">
-          <ContentAccionesTabla
-            funcionEditar={() => editar(info.row.original)}
-            funcionEliminar={() => eliminar(info.row.original)}
-          />
-        </div>
+        <ActionsCell>
+          <ActionButton
+            $variant="edit"
+            onClick={() => editar(info.row.original)}
+            title="Editar"
+          >
+            <Icon icon="lucide:pencil" width="16" />
+          </ActionButton>
+          <ActionButton
+            $variant="delete"
+            onClick={() => eliminar(info.row.original)}
+            title="Desactivar"
+          >
+            <Icon icon="lucide:trash-2" width="16" />
+          </ActionButton>
+        </ActionsCell>
       ),
-      enableColumnFilter: true,
-      filterFn: (row, columnId, filterStatuses) => {
-        if (filterStatuses.length === 0) return true;
-        const status = row.getValue(columnId);
-        return filterStatuses.includes(status?.id);
-      },
     },
   ];
+
   const table = useReactTable({
-    data,
+    data: data || [],
     columns,
-    state: {
-      columnFilters,
-    },
+    state: { columnFilters },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    columnResizeMode: "onChange",
-    meta: {
-      updateData: (rowIndex, columnId, value) =>
-        setData((prev) =>
-          prev.map((row, index) =>
-            index === rowIndex
-              ? {
-                  ...prev[rowIndex],
-                  [columnId]: value,
-                }
-              : row
-          )
-        ),
-    },
   });
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState>
+        <EmptyIcon>
+          <Icon icon="lucide:package" width="56" />
+        </EmptyIcon>
+        <EmptyTitle>Sin productos</EmptyTitle>
+        <EmptyText>Agrega tu primer producto para comenzar</EmptyText>
+      </EmptyState>
+    );
+  }
+
   return (
-    <>
-      <Container>
-        <table className="responsive-table">
-          <thead>
+    <Container>
+      <TableWrapper>
+        <Table>
+          <Thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id}>
-                    {header.column.columnDef.header}
-                    {header.column.getCanSort() && (
-                      <span
-                        style={{ cursor: "pointer" }}
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <FaArrowsAltV />
-                      </span>
-                    )}
-                    {
-                      {
-                        asc: " 🔼",
-                        desc: " 🔽",
-                      }[header.column.getIsSorted()]
-                    }
-                    <div
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                      className={`resizer ${
-                        header.column.getIsResizing() ? "isResizing" : ""
-                      }`}
-                    />
-                  </th>
+                  <Th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    $sortable={header.column.getCanSort()}
+                  >
+                    <ThContent>
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                      {header.column.getCanSort() && (
+                        <SortIcon $sorted={header.column.getIsSorted()}>
+                          <Icon icon="lucide:chevrons-up-down" width="14" />
+                        </SortIcon>
+                      )}
+                    </ThContent>
+                  </Th>
                 ))}
               </tr>
             ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((item) => (
-              <tr key={item.id}>
-                {item.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>
+          </Thead>
+          <Tbody>
+            {table.getRowModel().rows.map((row) => (
+              <Tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <Td key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+                  </Td>
                 ))}
-              </tr>
+              </Tr>
             ))}
-          </tbody>
-        </table>
+          </Tbody>
+        </Table>
+      </TableWrapper>
+
+      <PaginationWrapper>
         <Paginacion
           table={table}
           irinicio={() => table.setPageIndex(0)}
@@ -236,153 +287,218 @@ export function TablaProductos({
           setPagina={setPagina}
           maximo={table.getPageCount()}
         />
-      </Container>
-    </>
+      </PaginationWrapper>
+    </Container>
   );
 }
+
+// =====================
+// STYLED COMPONENTS
+// =====================
+
 const Container = styled.div`
-  position: relative;
+  padding: 0 24px 24px;
+`;
 
-  margin: 5% 3%;
-  @media (min-width: ${v.bpbart}) {
-    margin: 2%;
+const TableWrapper = styled.div`
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e5e5;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Thead = styled.thead`
+  background: #fafafa;
+  border-bottom: 1px solid #e5e5e5;
+`;
+
+const Th = styled.th`
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: ${({ $sortable }) => ($sortable ? "pointer" : "default")};
+  user-select: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: ${({ $sortable }) => ($sortable ? "#f0f0f0" : "transparent")};
   }
-  @media (min-width: ${v.bphomer}) {
-    margin: 2em auto;
-    /* max-width: ${v.bphomer}; */
+
+  &:last-child {
+    text-align: right;
+    padding-right: 20px;
   }
-  .responsive-table {
-    width: 100%;
-    margin-bottom: 1.5em;
-    border-spacing: 0;
-    @media (min-width: ${v.bpbart}) {
-      font-size: 0.9em;
-    }
-    @media (min-width: ${v.bpmarge}) {
-      font-size: 1em;
-    }
-    thead {
-      position: absolute;
+`;
 
-      padding: 0;
-      border: 0;
-      height: 1px;
-      width: 1px;
-      overflow: hidden;
+const ThContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
 
-      @media (min-width: ${v.bpbart}) {
-        position: relative;
-        height: auto;
-        width: auto;
-        overflow: auto;
-      }
-      th {
-        border-bottom: 2px solid ${({ theme }) => theme.color2};
-        font-weight: 700;
-        text-align: center;
-        color: ${({ theme }) => theme.text};
-        &:first-of-type {
-          text-align: center;
-        }
-      }
-    }
-    tbody,
-    tr,
-    th,
-    td {
-      display: block;
-      padding: 0;
-      text-align: left;
-      white-space: normal;
-    }
-    tr {
-      @media (min-width: ${v.bpbart}) {
-        display: table-row;
-      }
-    }
+const SortIcon = styled.span`
+  display: flex;
+  opacity: ${({ $sorted }) => ($sorted ? 1 : 0.4)};
+  color: ${({ $sorted }) => ($sorted ? "#111" : "#9ca3af")};
+  transition: all 0.15s;
+`;
 
-    th,
-    td {
-      padding: 0.5em;
-      vertical-align: middle;
-      @media (min-width: ${v.bplisa}) {
-        padding: 0.75em 0.5em;
-      }
-      @media (min-width: ${v.bpbart}) {
-        display: table-cell;
-        padding: 0.5em;
-      }
-      @media (min-width: ${v.bpmarge}) {
-        padding: 0.75em 0.5em;
-      }
-      @media (min-width: ${v.bphomer}) {
-        padding: 0.75em;
-      }
-    }
-    tbody {
-      @media (min-width: ${v.bpbart}) {
-        display: table-row-group;
-      }
-      tr {
-        margin-bottom: 1em;
-        &:nth-of-type(even) {
-          background-color: rgba(161, 161, 161, 0.1);
-        }
-        @media (min-width: ${v.bpbart}) {
-          display: table-row;
-          border-width: 1px;
-        }
-        &:last-of-type {
-          margin-bottom: 0;
-        }
-        &:nth-of-type(even) {
-          @media (min-width: ${v.bpbart}) {
-          }
-        }
-      }
-      th[scope="row"] {
-        @media (min-width: ${v.bplisa}) {
-          border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-        }
-        @media (min-width: ${v.bpbart}) {
-          background-color: transparent;
-          text-align: center;
-          color: ${({ theme }) => theme.text};
-        }
-      }
-      .ContentCell {
-        text-align: right;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        height: 50px;
-        
+const Tbody = styled.tbody``;
 
-        border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-        @media (min-width: ${v.bpbart}) {
-          justify-content: center;
-          border-bottom: none;
-        }
-      }
-      td {
-        text-align: right;
-        @media (min-width: ${v.bpbart}) {
-          /* border-bottom: 1px solid rgba(161, 161, 161, 0.32); */
-          text-align: center;
-        }
-      }
-      td[data-title]:before {
-        content: attr(data-title);
-        float: left;
-        font-size: 0.8em;
-        font-weight:700;
-        @media (min-width: ${v.bplisa}) {
-          font-size: 0.9em;
-        }
-        @media (min-width: ${v.bpbart}) {
-          content: none;
-        }
-      }
-    }
+const Tr = styled.tr`
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.15s;
+
+  &:last-child {
+    border-bottom: none;
   }
+
+  &:hover {
+    background: #fafafa;
+  }
+`;
+
+const Td = styled.td`
+  padding: 16px;
+  font-size: 14px;
+  color: #374151;
+  vertical-align: middle;
+
+  &:last-child {
+    text-align: right;
+    padding-right: 20px;
+  }
+`;
+
+// Cell components
+const ProductName = styled.span`
+  font-weight: 500;
+  color: #111;
+`;
+
+const PriceBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  background: #ecfdf5;
+  color: #059669;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+`;
+
+const PriceBadgeGray = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+`;
+
+const UnitBadge = styled.span`
+  display: inline-block;
+  padding: 4px 12px;
+  background: #eff6ff;
+  color: #3b82f6;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+`;
+
+const InventoryBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: ${({ $active }) => ($active ? "#ecfdf5" : "#fef2f2")};
+  color: ${({ $active }) => ($active ? "#059669" : "#ef4444")};
+`;
+
+const ActionsCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  background: ${({ $variant }) =>
+    $variant === "edit" ? "#f3f4f6" : "#fef2f2"};
+  color: ${({ $variant }) => ($variant === "edit" ? "#374151" : "#ef4444")};
+
+  &:hover {
+    background: ${({ $variant }) =>
+      $variant === "edit" ? "#e5e7eb" : "#fee2e2"};
+    transform: translateY(-1px);
+  }
+`;
+
+const PaginationWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+`;
+
+// Empty State
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+`;
+
+const EmptyIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  background: #f9fafb;
+  border-radius: 50%;
+  color: #9ca3af;
+  margin-bottom: 20px;
+`;
+
+const EmptyTitle = styled.h3`
+  font-size: 18px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px;
+`;
+
+const EmptyText = styled.p`
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0;
 `;

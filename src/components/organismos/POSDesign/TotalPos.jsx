@@ -1,107 +1,143 @@
 import styled from "styled-components";
-import { Btn1 } from "../../moleculas/Btn1";
 import { Device } from "../../../styles/breakpoints";
 import { Icon } from "@iconify/react";
-import { useDetalleVentasStore, useEmpresaStore, useVentasStore } from "../../..";
-import {FormatearNumeroDinero} from "../../../utils/Conversiones"
-import {useValidarPermisosOperativos} from "../../../hooks/useValidarPermisosOperativos"
+import { useDetalleVentasStore } from "../../../store/DetalleVentasStore";
+import { useEmpresaStore } from "../../../store/EmpresaStore";
+import { useVentasStore } from "../../../store/VentasStore";
+import { FormatearNumeroDinero } from "../../../utils/Conversiones";
+import { useValidarPermisosOperativos } from "../../../hooks/useValidarPermisosOperativos";
+
 export function TotalPos() {
-  const {setStateMetodosPago} = useVentasStore()
-  const {total} = useDetalleVentasStore()
-  const {dataempresa} = useEmpresaStore()
-  const {validarPermiso} = useValidarPermisosOperativos()
-  // const textLength = total.length;
-  // // Definir las clases CSS para diferentes longitudes de texto
-  // let textSizeClass = 'medium-text';
-  // if (textLength < 10) {
-  //   textSizeClass = 'large-text';
-  // } else if (textLength < 20) {
-  //   textSizeClass = 'medium-text';
-  // } else {
-  //   textSizeClass = 'small-text';
-  // }
-  const validarPermisoCobrar = ()=>{
-    const hasPermission = validarPermiso("Cobrar venta")
-    if(!hasPermission) return;
-    setStateMetodosPago()
-  }
+  const { setStateMetodosPago } = useVentasStore();
+  const { total } = useDetalleVentasStore();
+  const { dataempresa } = useEmpresaStore();
+  const { validarPermiso } = useValidarPermisosOperativos();
+
+  const validarPermisoCobrar = () => {
+    const hasPermission = validarPermiso("Cobrar venta");
+    if (!hasPermission) return;
+    setStateMetodosPago();
+  };
+
   return (
     <Container>
-    <section className="imagen">
-        <img src="https://i.ibb.co/HdYgDdp/corazon-2.png" />
-      </section>
-      <section className="contentTotal">
-        <section className="contentTituloTotal">
-          <Btn1 border="2px"  bgcolor="#ffffff"   color="#207c33" funcion={validarPermisoCobrar} titulo="COBRAR" icono={<Icon icon="fluent-emoji:money-with-wings" />} />
-         
-        </section>
-        <span>{FormatearNumeroDinero(total,dataempresa?.currency,dataempresa?.iso)}</span>
+      <HeartIcon>
+        <Icon icon="lucide:heart" />
+      </HeartIcon>
       
-      </section> 
+      <TotalContent>
+        <TotalAmount>
+          {FormatearNumeroDinero(total, dataempresa?.currency, dataempresa?.iso)}
+        </TotalAmount>
+        
+        <CobrarButton onClick={validarPermisoCobrar}>
+          <Icon icon="lucide:banknote" />
+          COBRAR
+        </CobrarButton>
+      </TotalContent>
     </Container>
   );
 }
+
 const Container = styled.div`
   display: flex;
-  text-align: center;
-  justify-content: space-between;
-  border-radius: 15px;
-  font-weight: 700;
-  font-size: 38px;
-  background-color: #3ff563;
-  padding: 10px;
-  color: #207c33;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  border-radius: 14px;
   position: relative;
   overflow: hidden;
-  &::after {
-    content: "";
-    display: block;
-    width: 100px;
-    height: 100px;
-    background-color: #7fff99;
-    position: absolute;
-    border-radius: 50%;
-    top: -20px;
-    left: -15px;
-  }
+
   &::before {
     content: "";
-    display: block;
-    width: 20px;
-    height: 20px;
-    background-color: ${({ theme }) => theme.bgtotal};
     position: absolute;
+    top: -30px;
+    left: -30px;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
-    top: 5px;
-    right: 5px;
   }
-  .imagen {
-    z-index: 1;
-    width: 55px;
-   
-    position: relative;
-    @media ${Device.desktop} {
-      bottom: initial;
-    }
-    img {
-      width: 100%;
-    }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -40px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
   }
-  .contentTotal {
-    z-index:10;
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    .contentTituloTotal {
-      display: flex;
-      align-items: center;
-      position: relative;
-      margin-top: 30px;
-      justify-content:end;
-      align-content:end;
-      @media ${Device.desktop} {
-        display: none;
-      }
-    }
+`;
+
+const HeartIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+
+  svg {
+    font-size: 26px;
+    color: #fff;
+  }
+`;
+
+const TotalContent = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 1;
+`;
+
+const TotalAmount = styled.span`
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  @media ${Device.desktop} {
+    font-size: 36px;
+  }
+`;
+
+const CobrarButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #16a34a;
+  background: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  svg {
+    font-size: 18px;
+  }
+
+  @media ${Device.desktop} {
+    display: none;
   }
 `;

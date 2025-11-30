@@ -1,31 +1,18 @@
 import styled from "styled-components";
-import { v } from "../../../styles/variables";
-import {
-  InputText,
-  Btn1,
-  ConvertirCapitalize,
-  useProductosStore,
-  ContainerSelector,
-  Switch1,
-  Selector,
-  useSucursalesStore,
-  ListaDesplegable,
-  useCategoriasStore,
-  Btngenerarcodigo,
-  useAlmacenesStore,
-  ConvertirMinusculas,
-} from "../../../index";
+import { Icon } from "@iconify/react";
 import { useForm } from "react-hook-form";
-import { useEmpresaStore } from "../../../store/EmpresaStore";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Device } from "../../../styles/breakpoints";
-import { useEffect, useRef, useState } from "react";
-import { Checkbox1 } from "../Checkbox1";
-import Swal from "sweetalert2";
-import { SelectList } from "../../ui/lists/SelectList";
-import { useStockStore } from "../../../store/StockStore";
 import { toast } from "sonner";
-import { BtnClose } from "../../ui/buttons/BtnClose";
+
+import { useProductosStore } from "../../../store/ProductosStore";
+import { useEmpresaStore } from "../../../store/EmpresaStore";
+import { useSucursalesStore } from "../../../store/SucursalesStore";
+import { useCategoriasStore } from "../../../store/CategoriasStore";
+import { useAlmacenesStore } from "../../../store/AlmacenesStore";
+import { useStockStore } from "../../../store/StockStore";
+import { ConvertirMinusculas } from "../../../index";
+import { SelectList } from "../../ui/lists/SelectList";
 
 export function RegistrarProductos({
   onClose,
@@ -34,107 +21,50 @@ export function RegistrarProductos({
   setIsExploding,
   state,
 }) {
-  if (!state) return;
-  //validar checkboxs
-  const [isChecked1, setIsChecked1] = useState(true);
-  const [isChecked2, setIsChecked2] = useState(false);
   const [sevendepor, setSevendepor] = useState("UNIDAD");
-  const [stock, setStock] = useState("");
-  const [stockMinimo, setStockMinimo] = useState("");
-  const [ubicacion, setUbicacion] = useState("");
-  const handleCheckboxChange = (checkboxNumber) => {
-    if (checkboxNumber === 1) {
-      setIsChecked1(true);
-      setIsChecked2(false);
-      setSevendepor("UNIDAD");
-    } else {
-      setIsChecked1(false);
-      setIsChecked2(true);
-      setSevendepor("GRANEL");
-    }
-  };
-  //
-
-  const {
-    insertarProductos,
-    editarProductos,
-    generarCodigo,
-    codigogenerado,
-    refetchs,
-  } = useProductosStore();
-  const { insertarStock, mostrarStockXAlmacenYProducto } = useStockStore();
-  const { dataempresa } = useEmpresaStore();
-  const {
-    dataalmacen,
-    eliminarAlmacen,
-    mostrarAlmacenesXSucursal,
-    almacenSelectItem,
-    setAlmacenSelectItem,
-  } = useAlmacenesStore();
   const [stateInventarios, setStateInventarios] = useState(false);
   const [stateEnabledStock, setStateEnabledStock] = useState(false);
+  const [randomCodeinterno, setRandomCodeinterno] = useState("");
+  const [randomCodebarras, setRandomCodebarras] = useState("");
 
-  const [stateSucursalesLista, setStateSucursalesLista] = useState(false);
-  const [stateCategoriasLista, setStateCategoriasLista] = useState(false);
-  const inputcodigointerno = useRef();
-  const { dataSucursales, selectSucursal, sucursalesItemSelect } =
-    useSucursalesStore();
-  const { datacategorias, selectCategoria, categoriaItemSelect } =
-    useCategoriasStore();
-  const {
-    data: dataStockXAlmacenYProducto,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: [
-      "mostrar stock almacen y producto",
-      { id_producto: dataSelect?.id, id_almacen: almacenSelectItem?.id },
-    ],
-    queryFn: () =>
-      mostrarStockXAlmacenYProducto({
-        id_almacen: almacenSelectItem?.id,
-        id_producto: dataSelect?.id,
-      }),
-  });
-  const {
-    data: dataAlmacenes,
-    error: errorAlmacenes,
-    isLoading: isLoadingAlmacenes,
-  } = useQuery({
-    queryKey: [
-      "mostrar almacenes x sucursal",
-      { id_producto: dataSelect.id, id_sucursal: sucursalesItemSelect.id },
-    ],
-    queryFn: () =>
-      mostrarAlmacenesXSucursal({
-        id_sucursal: sucursalesItemSelect.id,
-      }),
+  const { insertarProductos, editarProductos, generarCodigo, codigogenerado, refetchs } = useProductosStore();
+  const { insertarStock, mostrarStockXAlmacenYProducto } = useStockStore();
+  const { dataempresa } = useEmpresaStore();
+  const { mostrarAlmacenesXSucursal, almacenSelectItem, setAlmacenSelectItem } = useAlmacenesStore();
+  const { dataSucursales, selectSucursal, sucursalesItemSelect } = useSucursalesStore();
+  const { datacategorias, selectCategoria, categoriaItemSelect } = useCategoriasStore();
+
+  const { data: dataStockXAlmacenYProducto } = useQuery({
+    queryKey: ["mostrar stock almacen y producto", { id_producto: dataSelect?.id, id_almacen: almacenSelectItem?.id }],
+    queryFn: () => mostrarStockXAlmacenYProducto({ id_almacen: almacenSelectItem?.id, id_producto: dataSelect?.id }),
+    enabled: !!almacenSelectItem?.id && !!dataSelect?.id,
   });
 
-  const {
-    register,
-    formState: { errors },
-    handleSubmit,
-  } = useForm();
+  const { data: dataAlmacenes } = useQuery({
+    queryKey: ["mostrar almacenes x sucursal", { id_sucursal: sucursalesItemSelect?.id }],
+    queryFn: () => mostrarAlmacenesXSucursal({ id_sucursal: sucursalesItemSelect?.id }),
+    enabled: !!sucursalesItemSelect?.id,
+  });
+
+  const { register, formState: { errors }, handleSubmit } = useForm();
+
   const { isPending, mutate: doInsertar } = useMutation({
     mutationFn: insertar,
     mutationKey: "insertar productos",
-    onError: (error) => toast.error(`Errror: ${error.message}`),
+    onError: (error) => toast.error(`Error: ${error.message}`),
     onSuccess: () => {
-      toast.success("Producto guardado correctamente");
-      cerrarFormulario();
+      toast.success("Producto guardado");
+      onClose();
+      setIsExploding(true);
     },
   });
-  const handlesub = (data) => {
-    doInsertar(data);
-  };
-  const cerrarFormulario = () => {
-    onClose();
-    setIsExploding(true);
-  };
+
   async function insertar(data) {
-    validarVacios(data);
+    if (!randomCodeinterno) generarCodigoInterno();
+    if (!randomCodebarras) generarCodigoBarras();
+    if (data.precio_venta?.trim() === "") data.precio_venta = 0;
+    if (data.precio_compra?.trim() === "") data.precio_compra = 0;
+
     if (accion === "Editar") {
       const p = {
         _id: dataSelect.id,
@@ -142,25 +72,21 @@ export function RegistrarProductos({
         _precio_venta: parseFloat(data.precio_venta),
         _precio_compra: parseFloat(data.precio_compra),
         _id_categoria: categoriaItemSelect.id,
-        _codigo_barras: randomCodebarras ? randomCodebarras : codigogenerado,
-        _codigo_interno: randomCodeinterno ? randomCodeinterno : codigogenerado,
+        _codigo_barras: randomCodebarras || codigogenerado,
+        _codigo_interno: randomCodeinterno || codigogenerado,
         _id_empresa: dataempresa.id,
         _sevende_por: sevendepor,
         _maneja_inventarios: stateInventarios,
       };
-      console.log(p);
       await editarProductos(p);
-      if (stateInventarios) {
-        if (!dataStockXAlmacenYProducto) {
-          const pStock = {
-            id_almacen: almacenSelectItem?.id,
-            id_producto: dataSelect?.id,
-            stock: parseFloat(data.stock),
-            stock_minimo: parseFloat(data.stock_minimo),
-            ubicacion: data.ubicacion,
-          };
-          await insertarStock(pStock);
-        }
+      if (stateInventarios && !dataStockXAlmacenYProducto) {
+        await insertarStock({
+          id_almacen: almacenSelectItem?.id,
+          id_producto: dataSelect?.id,
+          stock: parseFloat(data.stock || 0),
+          stock_minimo: parseFloat(data.stock_minimo || 0),
+          ubicacion: data.ubicacion || "",
+        });
       }
     } else {
       const p = {
@@ -168,444 +94,556 @@ export function RegistrarProductos({
         _precio_venta: parseFloat(data.precio_venta),
         _precio_compra: parseFloat(data.precio_compra),
         _id_categoria: categoriaItemSelect.id,
-        _codigo_barras: randomCodebarras ? randomCodebarras : codigogenerado,
-        _codigo_interno: randomCodeinterno ? randomCodeinterno : codigogenerado,
+        _codigo_barras: randomCodebarras || codigogenerado,
+        _codigo_interno: randomCodeinterno || codigogenerado,
         _id_empresa: dataempresa.id,
         _sevende_por: sevendepor,
         _maneja_inventarios: stateInventarios,
         _maneja_multiprecios: false,
       };
-
       const id_producto_nuevo = await insertarProductos(p);
       if (stateInventarios) {
-        const pStock = {
+        await insertarStock({
           id_almacen: almacenSelectItem?.id,
           id_producto: id_producto_nuevo,
-          stock: parseFloat(data.stock),
-          stock_minimo: parseFloat(data.stock_minimo),
-          ubicacion: data.ubicacion,
-        };
-
-        await insertarStock(pStock);
+          stock: parseFloat(data.stock || 0),
+          stock_minimo: parseFloat(data.stock_minimo || 0),
+          ubicacion: data.ubicacion || "",
+        });
       }
     }
   }
 
-  //#region validar check inventarios
-  function checkUseInventarios() {
-    if (accion === "Editar") {
-      if (dataalmacen) {
-        if (stateInventarios) {
-          Swal.fire({
-            title: "¿Estás seguro(a)?",
-            text: "Si desactiva esta opción se eliminara el stock!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Si, eliminar",
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              setStateInventarios(false);
-              await eliminarAlmacen({ id: dataalmacen.id });
-            }
-          });
-        } else {
-          setStateInventarios(true);
-        }
-      } else {
-        setStateInventarios(!stateInventarios);
-      }
-    } else {
-      setStateInventarios(!stateInventarios);
-    }
-  }
-  //#endregion
-  //#region validar vacios
-  function validarVacios(data) {
-    if (!randomCodeinterno) {
-      generarCodigoInterno();
-    }
-    if (!randomCodebarras) {
-      generarCodigoBarras();
-    }
-    if (data.precio_venta.trim() === "") {
-      data.precio_venta = 0;
-    }
-    if (data.precio_compra.trim() === "") {
-      data.precio_compra = 0;
-    }
-    if (stateInventarios) {
-      if (!dataalmacen) {
-        if (data.stock.trim() === "") {
-          data.stock = 0;
-        }
-        if (data.stock_minimo.trim() === "") {
-          data.stock_minimo = 0;
-        }
-      }
-    }
-  }
-  //#endregion
-  //#region generar codigo automatico
-  const [randomCodeinterno, setRandomCodeinterno] = useState("");
-  const [randomCodebarras, setRandomCodebarras] = useState("");
   function generarCodigoBarras() {
     generarCodigo();
     setRandomCodebarras(codigogenerado);
   }
+
   function generarCodigoInterno() {
     generarCodigo();
     setRandomCodeinterno(codigogenerado);
   }
-  const handleChangeinterno = (event) => {
-    setRandomCodeinterno(event.target.value);
-  };
-  const handleChangebarras = (event) => {
-    setRandomCodebarras(event.target.value);
-  };
-  //#endregion
-
-  //#region validar_accion
 
   useEffect(() => {
-    if (accion != "Editar") {
+    if (accion !== "Editar") {
       generarCodigoInterno();
     } else {
-      selectCategoria({
-        id:dataSelect.id_categoria,
-        nombre:dataSelect.categoria
-      })
+      selectCategoria({ id: dataSelect.id_categoria, nombre: dataSelect.categoria });
       setRandomCodeinterno(dataSelect.codigo_interno);
       setRandomCodebarras(dataSelect.codigo_barras);
-      dataSelect.sevende_por === "UNIDAD"
-        ? handleCheckboxChange(1)
-        : handleCheckboxChange(0);
-      dataSelect.maneja_inventarios
-        ? setStateInventarios(true)
-        : setStateInventarios(false);
-      dataSelect.maneja_inventarios
-        ? setStateEnabledStock(true)
-        : setStateEnabledStock(false);
+      setSevendepor(dataSelect.sevende_por);
+      setStateInventarios(dataSelect.maneja_inventarios);
+      setStateEnabledStock(dataSelect.maneja_inventarios);
     }
   }, []);
-  //#endregion validar_accion
+
+  // Early return after all hooks
+  if (!state) return null;
 
   return (
-    <Container>
-      {isPending ? (
-        <span>...🔼</span>
-      ) : (
-        <div className="sub-contenedor">
-          <div className="headers">
-            <section>
-              <h1>
-                {accion == "Editar"
-                  ? "Editar productos"
-                  : "REGISTRAR NUEVO PRODUCTO"}
-              </h1>
-            </section>
+    <Overlay onClick={onClose}>
+      <Modal onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <Header>
+          <HeaderTitle>
+            <Icon icon="lucide:package-plus" />
+            {accion === "Editar" ? "Editar producto" : "Nuevo producto"}
+          </HeaderTitle>
+          <CloseBtn onClick={() => { refetchs(); onClose(); }}>
+            <Icon icon="lucide:x" />
+          </CloseBtn>
+        </Header>
 
-            <section>
-              <BtnClose
-                funcion={() => {
-                  refetchs();
-                  onClose();
-                }}
+        {/* Form */}
+        <Form onSubmit={handleSubmit(doInsertar)}>
+          <FormGrid>
+            {/* Nombre */}
+            <InputGroup $full>
+              <Label>Nombre del producto</Label>
+              <InputWrapper>
+                <InputIcon><Icon icon="lucide:tag" /></InputIcon>
+                <Input
+                  placeholder="Ej: Coca Cola 500ml"
+                  defaultValue={dataSelect?.nombre}
+                  {...register("nombre", { required: true })}
+                />
+              </InputWrapper>
+              {errors.nombre && <ErrorText>Campo requerido</ErrorText>}
+            </InputGroup>
+
+            {/* Precios */}
+            <InputGroup>
+              <Label>Precio venta</Label>
+              <InputWrapper>
+                <InputIcon><Icon icon="lucide:dollar-sign" /></InputIcon>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  defaultValue={dataSelect?.precio_venta}
+                  {...register("precio_venta")}
+                />
+              </InputWrapper>
+            </InputGroup>
+
+            <InputGroup>
+              <Label>Precio compra</Label>
+              <InputWrapper>
+                <InputIcon><Icon icon="lucide:receipt" /></InputIcon>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  defaultValue={dataSelect?.precio_compra}
+                  {...register("precio_compra")}
+                />
+              </InputWrapper>
+            </InputGroup>
+
+            {/* Códigos */}
+            <InputGroup>
+              <Label>Código de barras</Label>
+              <InputWrapper>
+                <InputIcon><Icon icon="lucide:barcode" /></InputIcon>
+                <Input
+                  type="number"
+                  placeholder="EAN/UPC"
+                  value={randomCodebarras}
+                  onChange={(e) => setRandomCodebarras(e.target.value)}
+                />
+                <GenBtn type="button" onClick={generarCodigoBarras}>
+                  <Icon icon="lucide:refresh-cw" />
+                </GenBtn>
+              </InputWrapper>
+            </InputGroup>
+
+            <InputGroup>
+              <Label>Código interno</Label>
+              <InputWrapper>
+                <InputIcon><Icon icon="lucide:hash" /></InputIcon>
+                <Input
+                  type="number"
+                  placeholder="SKU"
+                  value={randomCodeinterno}
+                  onChange={(e) => setRandomCodeinterno(e.target.value)}
+                />
+                <GenBtn type="button" onClick={generarCodigoInterno}>
+                  <Icon icon="lucide:refresh-cw" />
+                </GenBtn>
+              </InputWrapper>
+            </InputGroup>
+
+            {/* Categoría */}
+            <InputGroup>
+              <Label>Categoría</Label>
+              <SelectList
+                data={datacategorias}
+                itemSelect={categoriaItemSelect}
+                onSelect={selectCategoria}
+                displayField="nombre"
               />
-            </section>
-          </div>
+            </InputGroup>
 
-          <form className="formulario" onSubmit={handleSubmit(handlesub)}>
-            <section className="seccion1">
-              <article>
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    className="form__field"
-                    defaultValue={dataSelect.nombre}
-                    type="text"
-                    placeholder="nombre"
-                    {...register("nombre", {
-                      required: true,
-                    })}
-                  />
-                  <label className="form__label">nombre</label>
-                  {errors.nombre?.type === "required" && <p>Campo requerido</p>}
-                </InputText>
-              </article>
-              <article>
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    step="0.01"
-                    className="form__field"
-                    defaultValue={dataSelect.precio_venta}
-                    type="number"
-                    placeholder="precio venta"
-                    {...register("precio_venta")}
-                  />
-                  <label className="form__label">precio venta</label>
-                </InputText>
-              </article>
-              <article>
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    step="0.01"
-                    className="form__field"
-                    defaultValue={dataSelect.precio_compra}
-                    type="number"
-                    placeholder="precio compra"
-                    {...register("precio_compra")}
-                  />
-                  <label className="form__label">precio compra</label>
-                </InputText>
-              </article>
-              <article className="contentPadregenerar">
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    className="form__field"
-                    value={randomCodebarras}
-                    onChange={handleChangebarras}
-                    type="number"
-                    placeholder="codigo de barras"
-                  />
-                  <label className="form__label">codigo de barras</label>
-                </InputText>
-                <ContainerBtngenerar>
-                  <Btngenerarcodigo
-                    titulo="Generar"
-                    funcion={generarCodigoBarras}
-                  />
-                </ContainerBtngenerar>
-              </article>
-              <article className="contentPadregenerar">
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    className="form__field"
-                    value={randomCodeinterno}
-                    onChange={handleChangeinterno}
-                    type="number"
-                    placeholder="codigo interno"
-                    // {...register("codigo_interno")}
-                  />
-                  <label className="form__label">codigo interno</label>
-                </InputText>
-                <ContainerBtngenerar>
-                  <Btngenerarcodigo
-                    titulo="Generar"
-                    funcion={generarCodigoInterno}
-                  />
-                </ContainerBtngenerar>
-              </article>
-            </section>
-            <section className="seccion2">
-              <label>Se vende por: </label>
-              <ContainerSelector>
-                <label>UNIDAD </label>
-                <Checkbox1
-                  isChecked={isChecked1}
-                  onChange={() => handleCheckboxChange(1)}
-                />
-                <label>GRANEL(decimales) </label>
-                <Checkbox1
-                  isChecked={isChecked2}
-                  onChange={() => handleCheckboxChange(2)}
-                />
-              </ContainerSelector>
+            {/* Se vende por */}
+            <InputGroup>
+              <Label>Se vende por</Label>
+              <ToggleGroup>
+                <ToggleBtn 
+                  type="button"
+                  $active={sevendepor === "UNIDAD"}
+                  onClick={() => setSevendepor("UNIDAD")}
+                >
+                  <Icon icon="lucide:box" /> Unidad
+                </ToggleBtn>
+                <ToggleBtn 
+                  type="button"
+                  $active={sevendepor === "GRANEL"}
+                  onClick={() => setSevendepor("GRANEL")}
+                >
+                  <Icon icon="lucide:scale" /> Granel
+                </ToggleBtn>
+              </ToggleGroup>
+            </InputGroup>
+          </FormGrid>
 
-              <ContainerSelector>
-                <label>Categoria: </label>
-                <SelectList data={datacategorias} itemSelect={categoriaItemSelect} onSelect={selectCategoria} displayField="nombre"/>
-                
-              </ContainerSelector>
-              <ContainerSelector>
-                <label>Controlar stock: </label>
-                <Switch1
-                  state={stateInventarios}
-                  setState={checkUseInventarios}
-                />
-              </ContainerSelector>
-              {stateInventarios && (
-                <ContainerStock>
-                  <ContainerSelector>
-                    <label>Sucursal: </label>
-                    <SelectList
-                      data={dataSucursales}
-                      itemSelect={sucursalesItemSelect}
-                      onSelect={selectSucursal}
-                      displayField="nombre"
-                    />
-                  </ContainerSelector>
-                  <br />
-                  <ContainerSelector>
-                    <label>Almacen: </label>
-                    <SelectList
-                      data={dataAlmacenes}
-                      itemSelect={almacenSelectItem}
-                      onSelect={setAlmacenSelectItem}
-                      displayField="nombre"
-                    />
-                  </ContainerSelector>
-                  {stateEnabledStock && dataStockXAlmacenYProducto && (
-                    <ContainerMensajeStock>
-                      <span>
-                        💀 para editar el stock vaya al módulo de kardex
-                      </span>
-                    </ContainerMensajeStock>
-                  )}
+          {/* Control de stock */}
+          <StockToggle>
+            <StockToggleInfo>
+              <Icon icon="lucide:warehouse" />
+              <div>
+                <span>Control de inventario</span>
+                <small>Gestionar stock del producto</small>
+              </div>
+            </StockToggleInfo>
+            <Switch 
+              $active={stateInventarios} 
+              onClick={() => setStateInventarios(!stateInventarios)}
+            >
+              <SwitchKnob $active={stateInventarios} />
+            </Switch>
+          </StockToggle>
 
-                  <article>
-                    <InputText icono={<v.iconoflechaderecha />}>
-                      <input
-                        disabled={!!dataStockXAlmacenYProducto}
-                        className="form__field"
-                        value={
-                          accion === "Editar"
-                            ? dataStockXAlmacenYProducto
-                              ? dataStockXAlmacenYProducto?.stock
-                              : stock
-                            : stock
-                        }
-                        step="0.01"
-                        type="number"
-                        placeholder="stock"
-                        {...register("stock")}
-                        onChange={(e) => setStock(e.target.value)}
-                      />
-                      <label className="form__label">stock</label>
-                    </InputText>
-                  </article>
-                  <article>
-                    <InputText icono={<v.iconoflechaderecha />}>
-                      <input
-                        disabled={!!dataStockXAlmacenYProducto}
-                        className="form__field"
-                        value={
-                          accion === "Editar"
-                            ? dataStockXAlmacenYProducto
-                              ? dataStockXAlmacenYProducto?.stock_minimo
-                              : stockMinimo
-                            : stockMinimo
-                        }
-                        step="0.01"
-                        type="number"
-                        placeholder="stock minimo"
-                        {...register("stock_minimo")}
-                        onChange={(e) => setStockMinimo(e.target.value)}
-                      />
-                      <label className="form__label">stock minimo</label>
-                    </InputText>
-                  </article>
-                  <article>
-                    <InputText icono={<v.iconoflechaderecha />}>
-                      <input
-                        disabled={!!dataStockXAlmacenYProducto}
-                        className="form__field"
-                        value={
-                          accion === "Editar"
-                            ? dataStockXAlmacenYProducto
-                              ? dataStockXAlmacenYProducto?.ubicacion
-                              : ubicacion
-                            : ubicacion
-                        }
-                        type="text"
-                        placeholder="ubicacion"
-                        {...register("ubicacion")}
-                        onChange={(e) => setUbicacion(e.target.value)}
-                      />
-                      <label className="form__label">Ubicacion</label>
-                    </InputText>
-                  </article>
-                </ContainerStock>
+          {/* Stock fields */}
+          {stateInventarios && (
+            <StockSection>
+              <StockGrid>
+                <InputGroup>
+                  <Label>Sucursal</Label>
+                  <SelectList
+                    data={dataSucursales}
+                    itemSelect={sucursalesItemSelect}
+                    onSelect={selectSucursal}
+                    displayField="nombre"
+                  />
+                </InputGroup>
+
+                <InputGroup>
+                  <Label>Almacén</Label>
+                  <SelectList
+                    data={dataAlmacenes}
+                    itemSelect={almacenSelectItem}
+                    onSelect={setAlmacenSelectItem}
+                    displayField="nombre"
+                  />
+                </InputGroup>
+              </StockGrid>
+
+              {stateEnabledStock && dataStockXAlmacenYProducto ? (
+                <StockWarning>
+                  <Icon icon="lucide:info" />
+                  Edite el stock desde el módulo Kardex
+                </StockWarning>
+              ) : (
+                <StockGrid>
+                  <InputGroup>
+                    <Label>Stock inicial</Label>
+                    <InputWrapper>
+                      <InputIcon><Icon icon="lucide:layers" /></InputIcon>
+                      <Input type="number" step="0.01" placeholder="0" {...register("stock")} />
+                    </InputWrapper>
+                  </InputGroup>
+
+                  <InputGroup>
+                    <Label>Stock mínimo</Label>
+                    <InputWrapper>
+                      <InputIcon><Icon icon="lucide:alert-triangle" /></InputIcon>
+                      <Input type="number" step="0.01" placeholder="0" {...register("stock_minimo")} />
+                    </InputWrapper>
+                  </InputGroup>
+
+                  <InputGroup $full>
+                    <Label>Ubicación</Label>
+                    <InputWrapper>
+                      <InputIcon><Icon icon="lucide:map-pin" /></InputIcon>
+                      <Input placeholder="Ej: Estante A-3" {...register("ubicacion")} />
+                    </InputWrapper>
+                  </InputGroup>
+                </StockGrid>
               )}
-            </section>
+            </StockSection>
+          )}
 
-            <Btn1
-              icono={<v.iconoguardar />}
-              titulo="Guardar"
-              bgcolor="#F9D70B"
-            />
-          </form>
-        </div>
-      )}
-    </Container>
+          {/* Actions */}
+          <Actions>
+            <CancelBtn type="button" onClick={onClose}>Cancelar</CancelBtn>
+            <SubmitBtn type="submit" disabled={isPending}>
+              {isPending ? (
+                <><Icon icon="lucide:loader-2" className="spin" /> Guardando...</>
+              ) : (
+                <><Icon icon="lucide:check" /> Guardar</>
+              )}
+            </SubmitBtn>
+          </Actions>
+        </Form>
+      </Modal>
+    </Overlay>
   );
 }
-const Container = styled.div`
-  transition: 0.5s;
-  top: 0;
-  left: 0;
+
+// Styles
+const Overlay = styled.div`
   position: fixed;
-  background-color: rgba(10, 9, 9, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  width: 100%;
-  min-height: 100vh;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(5px);
+  padding: 20px;
+`;
 
-  .sub-contenedor {
-    position: relative;
-    background: ${({ theme }) => theme.bgtotal};
-    box-shadow: -10px 15px 30px rgba(10, 9, 9, 0.4);
-    padding: 13px 36px 13px 36px;
-    z-index: 100;
-    height: calc(100vh - 40px);
-    overflow-y: auto;
-    border-radius: 8px;
+const Modal = styled.div`
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+`;
 
-    .headers {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eee;
+`;
 
-      h1 {
-        font-size: 30px;
-      }
-      span {
-        font-size: 20px;
-        cursor: pointer;
-      }
-    }
-    .formulario {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 15px;
-      @media ${Device.tablet} {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .seccion1,
-      .seccion2 {
-        gap: 20px;
-        display: flex;
-        flex-direction: column;
-      }
-      .contentPadregenerar {
-        position: relative;
-      }
-    }
+const HeaderTitle = styled.h2`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+  
+  svg { font-size: 22px; color: #666; }
+`;
+
+const CloseBtn = styled.button`
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  svg { font-size: 20px; color: #666; }
+  &:hover { background: #eee; }
+`;
+
+const Form = styled.form`
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr;
   }
 `;
-const ContainerStock = styled.div`
-  border: 1px solid rgba(240, 104, 46, 0.9);
+
+const InputGroup = styled.div`
   display: flex;
-  border-radius: 15px;
-  padding: 12px;
   flex-direction: column;
-  background-color: rgba(240, 127, 46, 0.05);
+  gap: 6px;
+  grid-column: ${({ $full }) => ($full ? "1 / -1" : "auto")};
 `;
-const ContainerBtngenerar = styled.div`
-  position: absolute;
-  right: 0;
-  top: 10%;
+
+const Label = styled.label`
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
 `;
-const ContainerMensajeStock = styled.div`
-  text-align: center;
-  color: #f9184c;
-  background-color: rgba(249, 24, 61, 0.2);
+
+const InputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  background: #fafafa;
+  border: 2px solid #e5e5e5;
   border-radius: 10px;
-  padding: 5px;
-  margin: 10px;
-  font-weight: 600;
+  transition: all 0.15s;
+  
+  &:focus-within {
+    border-color: #111;
+    background: #fff;
+  }
 `;
+
+const InputIcon = styled.div`
+  padding-left: 12px;
+  color: #999;
+  svg { font-size: 18px; }
+`;
+
+const Input = styled.input`
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  outline: none;
+  
+  &::placeholder { color: #bbb; }
+`;
+
+const GenBtn = styled.button`
+  padding: 8px 12px;
+  margin-right: 4px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  svg { font-size: 16px; color: #666; }
+  &:hover { background: #e5e5e5; }
+`;
+
+const ErrorText = styled.span`
+  font-size: 12px;
+  color: #dc2626;
+`;
+
+const ToggleGroup = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const ToggleBtn = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  background: ${({ $active }) => ($active ? "#111" : "#f5f5f5")};
+  color: ${({ $active }) => ($active ? "#fff" : "#666")};
+  border: 2px solid ${({ $active }) => ($active ? "#111" : "#e5e5e5")};
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  svg { font-size: 16px; }
+  &:hover { border-color: #111; }
+`;
+
+const StockToggle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 12px;
+`;
+
+const StockToggleInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  > svg { font-size: 22px; color: #666; }
+  
+  div {
+    span { display: block; font-size: 14px; font-weight: 500; color: #333; }
+    small { font-size: 12px; color: #999; }
+  }
+`;
+
+const Switch = styled.div`
+  width: 48px;
+  height: 26px;
+  background: ${({ $active }) => ($active ? "#111" : "#ddd")};
+  border-radius: 13px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+`;
+
+const SwitchKnob = styled.div`
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: ${({ $active }) => ($active ? "24px" : "2px")};
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+`;
+
+const StockSection = styled.div`
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px dashed #e5e5e5;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const StockGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  
+  @media (max-width: 500px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StockWarning = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  font-size: 13px;
+  
+  svg { font-size: 18px; }
+`;
+
+const Actions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+`;
+
+const CancelBtn = styled.button`
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #f5f5f5;
+  color: #666;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  &:hover { background: #eee; }
+`;
+
+const SubmitBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #111;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  svg { font-size: 18px; }
+  
+  &:hover:not(:disabled) { background: #222; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+

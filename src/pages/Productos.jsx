@@ -13,7 +13,7 @@ export function Productos() {
   const {mostrarCategorias} = useCategoriasStore();
   const {mostrarSucursales} = useSucursalesStore();
   const {} =useAlmacenesStore()
-  const { mostrarProductos, buscarProductos, buscador,setRefetch } =
+  const { mostrarProductos, mostrarProductosInactivos, buscarProductos, buscador,setRefetch } =
     useProductosStore();
   const { dataempresa } = useEmpresaStore();
   const {
@@ -24,6 +24,14 @@ export function Productos() {
   } = useQuery({
     queryKey: ["mostrar productos", dataempresa?.id],
     queryFn: () => mostrarProductos({ id_empresa: dataempresa?.id, refetchs: refetch }),
+    enabled: !!dataempresa,
+    refetchOnWindowFocus: false,
+  });
+
+  // Cargar productos inactivos al inicio (para el contador)
+  const { isLoading: isLoadingProductosInactivos } = useQuery({
+    queryKey: ["mostrar productos inactivos", dataempresa?.id],
+    queryFn: () => mostrarProductosInactivos({ id_empresa: dataempresa?.id }),
     enabled: !!dataempresa,
     refetchOnWindowFocus: false,
   });
@@ -59,7 +67,7 @@ export function Productos() {
   });
   
   // Consolidación de isLoading y error
-  const isLoading = isLoadingProductos  || isLoadingSucursales || isLoadingCategorias;
+  const isLoading = isLoadingProductos || isLoadingProductosInactivos || isLoadingSucursales || isLoadingCategorias;
   const error = errorProductos;
   
   if (isLoading) {

@@ -32,18 +32,18 @@ export const useInsertarMovStockMutation = () => {
   const queryClient = useQueryClient();
   const {  productosItemSelect,resetProductosItemSelect } = useProductosStore();
  const { itemSelect ,setStateClose} = useGlobalStore();
-  const { tipo, insertarMovStock } = useMovStockStore();
-  const {  editarStock,dataStockXAlmacenYProducto:dataStock } = useStockStore();
+  const { tipo } = useMovStockStore();
+  const {  dataStockXAlmacenYProducto:dataStock, RegistrarMovimientoAtomico } = useStockStore();
   const { almacenSelectItem } =
     useAlmacenesStore();
    
-  const { editarPreciosProductos } = useProductosStore();
   const fechaActual = useFormattedDate();
   console.log("dataStock",dataStock)
   return useMutation({
     mutationKey: ["insertar movimiento stock"],
     mutationFn: async (data) => {
-      const pMovimientoStock = {
+      // Construir el objeto movimiento para la función atómica
+      const movimiento = {
         id_almacen: almacenSelectItem?.id,
         id_producto: productosItemSelect?.id,
         tipo_movimiento: tipo,
@@ -52,27 +52,22 @@ export const useInsertarMovStockMutation = () => {
         detalle: "registro de inventario manual",
         origen: "inventario",
       };
-      const pStock = {
-        _id: dataStock?.id,
-        cantidad: parseFloat(data.cantidad),
-      };
-      const pProductos = {
-        id: productosItemSelect?.id,
-        precio_compra: parseFloat(
-          (productosItemSelect?.precio_compra + data.precio_compra) / 2
-        ),
-        precio_venta: parseFloat(
-          (productosItemSelect?.precio_venta + data.precio_venta) / 2
-        ),
-      };
-      console.log("pMovimientoStock",pMovimientoStock)
-      console.log("pStock",pStock)
-      console.log("pProductos",pProductos)
-      console.log("tipo",tipo)
       
-      await insertarMovStock(pMovimientoStock);
-       await editarStock(pStock, tipo);
-       await editarPreciosProductos(pProductos);
+      // Parámetros para la función atómica
+      const params = {
+        movimiento: movimiento,
+        tipo: tipo,
+        id_stock: dataStock?.id || null,
+        cantidad: parseFloat(data.cantidad),
+        precio_compra: parseFloat(data.precio_compra),
+        precio_venta: parseFloat(data.precio_venta),
+        id_producto: productosItemSelect?.id,
+      };
+      
+      console.log("Ejecutando transacción atómica con params:", params);
+      
+      // Una sola llamada que hace todo atómicamente
+      await RegistrarMovimientoAtomico(params);
     },
     onError: (error) => {
       toast.error("Error:" + error.message);

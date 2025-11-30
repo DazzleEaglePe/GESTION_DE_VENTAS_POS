@@ -1,229 +1,259 @@
 import styled from "styled-components";
-import { useState } from "react";
 import {
   LinksArray,
   SecondarylinksArray,
   ToggleTema,
+  useAuthStore,
 } from "../../../index";
-import { v } from "../../../styles/variables";
 import { NavLink } from "react-router-dom";
 import { Icon } from "@iconify/react";
+
 export const MenuMovil = ({ setState }) => {
-  const [state, setstate] = useState(true);
+  const { cerrarSesion } = useAuthStore();
+
+  const handleLogout = () => {
+    cerrarSesion();
+    setState();
+  };
 
   return (
-    <Container>
-        
-      <Main $isopen={state.toString()}>
-        <Container $isopen={state.toString()} className={state ? "active" : ""}>
-          <div className="Logocontent">
-            <div className="imgcontent">
-              <img src={v.logo} />
-            </div>
-            <h2>Ada369 3.0</h2>
-          </div>
-          {LinksArray.map(({ icon, label, to }) => (
-            <div
-              onClick={setState}
-              className={state ? "LinkContainer active" : "LinkContainer"}
-              key={label}
-            >
-              <NavLink
-                to={to}
-                className={({ isActive }) =>
-                  `Links${isActive ? ` active` : ``}`
-                }
-              >
-                <section className={state ? "content open" : "content"}>
-                  <Icon className="Linkicon" icon={icon} />
-                  <span className={state ? "label_ver" : "label_oculto"}>
-                    {label}
-                  </span>
-                </section>
-              </NavLink>
-            </div>
-          ))}
-          <Divider />
-          {SecondarylinksArray.map(({ icon, label, to, color }) => (
-            <div
-              className={state ? "LinkContainer active" : "LinkContainer"}
-              key={label}
-              onClick={setState}
-            >
-              <NavLink
-                to={to}
-                className={({ isActive }) =>
-                  `Links${isActive ? ` active` : ``}`
-                }
-              >
-                <section className={state ? "content open" : "content"}>
-                  <Icon color={color} className="Linkicon" icon={icon} />
-                  <span className={state ? "label_ver" : "label_oculto"}>
-                    {label}
-                  </span>
-                </section>
-              </NavLink>
-            </div>
-          ))}
-          <div className={state ? "LinkContainer active" : "LinkContainer"}>
-            <div
-              className="Links"
-              onClick={() => SetstateDesplegableLinks(!stateDesplegableLinks)}
-            >
-              <section className={state ? "content open" : "content"}>
-                <Icon
-                  color="#CE82FF"
-                  className="Linkicon"
-                  icon="heroicons:ellipsis-horizontal-circle-solid"
-                />
-                <span className={state ? "label_ver" : "label_oculto"}>
-                  MÁS
-                </span>
-              </section>
-            </div>
-          </div>
+    <Overlay onClick={setState}>
+      <Container onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <Header>
+          <LogoBox>M&L</LogoBox>
+          <LogoText>Minimarket</LogoText>
+          <CloseButton onClick={setState}>
+            <Icon icon="lucide:x" />
+          </CloseButton>
+        </Header>
 
-          <ToggleTema />
-        </Container>
-      </Main>
-    </Container>
+        {/* Navegación Principal */}
+        <NavSection>
+          <NavLabel>Menú</NavLabel>
+          {LinksArray.map(({ icon, label, to }) => (
+            <LinkItem key={label} onClick={setState}>
+              <StyledNavLink
+                to={to}
+                className={({ isActive }) => isActive ? 'active' : ''}
+              >
+                <LinkIcon>
+                  <Icon icon={icon} />
+                </LinkIcon>
+                <LinkLabel>{label}</LinkLabel>
+              </StyledNavLink>
+            </LinkItem>
+          ))}
+        </NavSection>
+
+        <Divider />
+
+        {/* Navegación Secundaria */}
+        <NavSection>
+          <NavLabel>Sistema</NavLabel>
+          {SecondarylinksArray.map(({ icon, label, to }) => (
+            <LinkItem key={label} onClick={setState}>
+              <StyledNavLink
+                to={to}
+                className={({ isActive }) => isActive ? 'active' : ''}
+              >
+                <LinkIcon>
+                  <Icon icon={icon} />
+                </LinkIcon>
+                <LinkLabel>{label}</LinkLabel>
+              </StyledNavLink>
+            </LinkItem>
+          ))}
+        </NavSection>
+
+        {/* Footer */}
+        <Footer>
+          <LogoutButton onClick={handleLogout}>
+            <Icon icon="lucide:log-out" />
+            <span>Cerrar Sesión</span>
+          </LogoutButton>
+          <ThemeWrapper>
+            <ToggleTema />
+          </ThemeWrapper>
+        </Footer>
+      </Container>
+    </Overlay>
   );
 };
-const Container = styled.div`
-  background: ${({ theme }) => theme.bgtotal};
-  color: ${(props) => props.theme.text};
+
+const Overlay = styled.div`
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
 
-  z-index: 100;
-  height: 100%;
-  width: 100%;
-  transition: 0.1s ease-in-out;
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+`;
+
+const Container = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background: ${({ theme }) => theme.bg};
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
-  overflow-x: hidden;
-  border-right: 2px solid ${({ theme }) => theme.color2};
 
-  &::-webkit-scrollbar {
-    width: 6px;
-    border-radius: 10px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background-color: ${(props) => props.theme.colorScroll};
-    border-radius: 10px;
-  }
-
-  .Logocontent {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    .imgcontent {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 30px;
-      cursor: pointer;
-      transition: 0.3s ease;
-      transform: ${({ $isopen }) =>
-          $isopen === "true" ? `scale(0.7)` : `scale(1.5)`}
-        rotate(${({ theme }) => theme.logorotate});
-      img {
-        width: 100%;
-        animation: flotar 1.7s ease-in-out infinite alternate;
-      }
-    }
-    h2 {
-      color: #f88533;
-      display: ${({ $isopen }) => ($isopen === "true" ? `block` : `none`)};
-    }
-  }
-  .LinkContainer {
-    margin: 9px 0;
-    margin-right: 10px;
-    margin-left: 8px;
-    transition: all 0.3s ease-in-out;
-    position: relative;
-    text-transform: uppercase;
-    font-weight: 700;
-  }
-
-  .Links {
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    width: 100%;
-    color: ${(props) => props.theme.text};
-    height: 60px;
-    position: relative;
-    .content {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-      align-items: center;
-      .Linkicon {
-        display: flex;
-        font-size: 33px;
-
-        svg {
-          font-size: 25px;
-        }
-      }
-
-      .label_ver {
-        transition: 0.3s ease-in-out;
-        opacity: 1;
-        display: initial;
-      }
-      .label_oculto {
-        opacity: 0;
-        display: none;
-      }
-
-      &.open {
-        justify-content: start;
-        gap: 20px;
-        padding: 20px;
-      }
-    }
-
-    &:hover {
-      background: ${(props) => props.theme.bgAlpha};
-    }
-
-    &.active {
-      background: ${(props) => props.theme.bg6};
-      border: 2px solid ${(props) => props.theme.bg5};
-      color: ${(props) => props.theme.color1};
-      font-weight: 600;
-    }
+  @keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
   }
 `;
-const Main = styled.div`
 
-  .Sidebarbutton {
-    position: fixed;
-    top: 70px;
-    left: 68px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: ${(props) => props.theme.bgtgderecha};
-    box-shadow: 0 0 4px ${(props) => props.theme.bg3},
-      0 0 7px ${(props) => props.theme.bg};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    z-index: 3;
-    transform: ${({ $isopen }) =>
-      $isopen === "true" ? `translateX(173px) rotate(3.142rad)` : `initial`};
-    color: ${(props) => props.theme.text};
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid ${({ theme }) => theme.gray100 || '#f0f0f0'};
+`;
+
+const LogoBox = styled.div`
+  min-width: 40px;
+  height: 40px;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const LogoText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.text};
+  flex: 1;
+`;
+
+const CloseButton = styled.button`
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: ${({ theme }) => theme.gray100 || '#f5f5f5'};
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: ${({ theme }) => theme.textSecondary || '#666'};
+  font-size: 20px;
+  transition: all 0.15s;
+
+  &:hover {
+    background: ${({ theme }) => theme.gray200 || '#eee'};
+    color: ${({ theme }) => theme.text};
   }
 `;
+
+const NavSection = styled.div`
+  padding: 16px;
+`;
+
+const NavLabel = styled.span`
+  font-size: 11px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.textSecondary || '#999'};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  display: block;
+`;
+
+const LinkItem = styled.div`
+  margin: 4px 0;
+`;
+
+const StyledNavLink = styled(NavLink)`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: ${({ theme }) => theme.textSecondary || '#666'};
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.gray100 || '#f5f5f5'};
+    color: ${({ theme }) => theme.text};
+  }
+
+  &.active {
+    background: #111;
+    color: #fff;
+  }
+`;
+
+const LinkIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+`;
+
+const LinkLabel = styled.span`
+  font-size: 15px;
+  font-weight: 500;
+`;
+
 const Divider = styled.div`
   height: 1px;
+  background: ${({ theme }) => theme.gray100 || '#f0f0f0'};
+  margin: 0 20px;
+`;
+
+const Footer = styled.div`
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid ${({ theme }) => theme.gray100 || '#f0f0f0'};
+`;
+
+const LogoutButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: ${({ theme }) => theme.textSecondary || '#999'};
+  cursor: pointer;
   width: 100%;
-  background: ${(props) => props.theme.bg4};
-  margin: ${() => v.lgSpacing} 0;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #fef2f2;
+    color: #ef4444;
+  }
+
+  svg {
+    font-size: 22px;
+  }
+`;
+
+const ThemeWrapper = styled.div`
+  margin-top: 12px;
+  padding: 0 12px;
 `;
