@@ -25,7 +25,7 @@ export function PantallaAperturaCaja() {
         <NavLink to="/" style={{ textDecoration: 'none' }}>
           <LogoContainer>
             <Logo>M&L</Logo>
-            <LogoText>Mathias y Luciana</LogoText>
+            <LogoText>Minimarket</LogoText>
           </LogoContainer>
         </NavLink>
       </Header>
@@ -70,7 +70,7 @@ export function PantallaAperturaCaja() {
         </Card>
 
         <FooterInfo>
-          <span>Minimarket "Mathias y Luciana"</span>
+          <span>Minimarket "Minimarket"</span>
           <span>Ica, Perú — 2025</span>
         </FooterInfo>
       </Content>

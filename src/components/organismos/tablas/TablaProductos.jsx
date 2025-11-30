@@ -153,7 +153,7 @@ export function TablaProductos({
       cell: (info) => <ProductName>{info.getValue()}</ProductName>,
     },
     {
-      accessorKey: "p_venta",
+      accessorKey: "precio_venta",
       header: "P. Venta",
       cell: (info) => (
         <PriceBadge>
@@ -163,7 +163,7 @@ export function TablaProductos({
       ),
     },
     {
-      accessorKey: "p_compra",
+      accessorKey: "precio_compra",
       header: "P. Compra",
       cell: (info) => (
         <PriceBadgeGray>

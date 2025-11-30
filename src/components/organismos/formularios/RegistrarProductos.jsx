@@ -42,9 +42,17 @@ export function RegistrarProductos({
 
   const { data: dataAlmacenes } = useQuery({
     queryKey: ["mostrar almacenes x sucursal", { id_sucursal: sucursalesItemSelect?.id }],
-    queryFn: () => mostrarAlmacenesXSucursal({ id_sucursal: sucursalesItemSelect?.id }),
+    queryFn: () => {
+      console.log("🔍 Buscando almacenes para sucursal:", sucursalesItemSelect);
+      return mostrarAlmacenesXSucursal({ id_sucursal: sucursalesItemSelect?.id });
+    },
     enabled: !!sucursalesItemSelect?.id,
   });
+
+  // Debug: ver qué almacenes se obtienen
+  console.log("📦 dataAlmacenes:", dataAlmacenes);
+  console.log("🏢 sucursalesItemSelect:", sucursalesItemSelect);
+  console.log("📋 dataSucursales (TODAS):", dataSucursales);
 
   const { register, formState: { errors }, handleSubmit } = useForm();
 
@@ -136,6 +144,15 @@ export function RegistrarProductos({
       setStateEnabledStock(dataSelect.maneja_inventarios);
     }
   }, []);
+
+  // Cuando cambian los almacenes disponibles, seleccionar el primero
+  useEffect(() => {
+    if (dataAlmacenes && dataAlmacenes.length > 0) {
+      setAlmacenSelectItem(dataAlmacenes[0]);
+    } else {
+      setAlmacenSelectItem(null);
+    }
+  }, [dataAlmacenes, setAlmacenSelectItem]);
 
   // Early return after all hooks
   if (!state) return null;
