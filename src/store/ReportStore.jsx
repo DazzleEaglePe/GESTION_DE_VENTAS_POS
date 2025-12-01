@@ -7,7 +7,10 @@ export const useReportStore = create((set) => ({
     return data;
   },
   reportStockBajoMinimo: async (p) => {
-    const { data } = await supabase.rpc("report_stock_bajo_minimo", p);
+    const { data, error } = await supabase.rpc("report_stock_bajo_minimo", p);
+    if (error) {
+      console.error("Error en reportStockBajoMinimo:", error);
+    }
     return data;
   },
   reportVentasPorSucursal: async (p) => {

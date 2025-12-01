@@ -1,12 +1,7 @@
 import styled from "styled-components";
-
-import { blur_in } from "../../../styles/keyframes";
 import { FormatearNumeroDinero } from "../../../utils/Conversiones";
 import {
-  Btn1,
-  InputText2,
   Lottieanimacion,
- 
   useDetalleVentasStore,
   useEmpresaStore,
   useVentasStore,
@@ -14,18 +9,18 @@ import {
 import animacionvacio from "../../../assets/vacioanimacion.json";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { useState } from "react";
-import { Device } from "../../../styles/breakpoints";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-export function AreaDetalleventaPos() {
 
+export function AreaDetalleventaPos() {
   const { dataempresa } = useEmpresaStore();
   const [editIndex, setEditIndex] = useState(null);
   const [newCantidad, setNewCantidad] = useState(1);
-  const { mostrardetalleventa, editarCantidadDetalleVenta,eliminardetalleventa } =
+  const { mostrardetalleventa, editarCantidadDetalleVenta, eliminardetalleventa } =
     useDetalleVentasStore();
-    const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const { idventa } = useVentasStore();
+
   const EditarCantidadDv = async (data) => {
     const p = {
       _id: data.id,
@@ -33,318 +28,363 @@ export function AreaDetalleventaPos() {
     };
     await editarCantidadDetalleVenta(p);
   };
-  const {mutate:mutateEditarCantidadDV} = useMutation({
+
+  const { mutate: mutateEditarCantidadDV } = useMutation({
     mutationKey: ["editar cantidad detalle venta"],
     mutationFn: EditarCantidadDv,
-    onError:(error)=>{
-      toast.error(`Error: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Error: ${error.message}`);
     },
-    onSuccess:()=>{
-      queryClient.invalidateQueries(["mostrar detalle venta"])
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries(["mostrar detalle venta"]);
+    },
   });
-  const EliminarDV =async(p) =>{
-    await eliminardetalleventa({id:p.id})
-  }
-  const {mutate:mutateEliminarDV} = useMutation({
-    mutationKey: ["editar cantidad detalle venta"],
+
+  const EliminarDV = async (p) => {
+    await eliminardetalleventa({ id: p.id });
+  };
+
+  const { mutate: mutateEliminarDV } = useMutation({
+    mutationKey: ["eliminar detalle venta"],
     mutationFn: EliminarDV,
-    onError:(error)=>{
-      toast.error(`Error: ${error.message}`)
+    onError: (error) => {
+      toast.error(`Error: ${error.message}`);
     },
-    onSuccess:()=>{
-      queryClient.invalidateQueries(["mostrar detalle venta"])
-    }
+    onSuccess: () => {
+      queryClient.invalidateQueries(["mostrar detalle venta"]);
+    },
   });
+
   const handleEditClick = (index, cantidad) => {
     setEditIndex(index);
     setNewCantidad(cantidad);
   };
+
   const handleInputChange = (e) => {
     const value = Math.max(0, parseFloat(e.target.value));
     setNewCantidad(value);
   };
+
   const handleInputBlur = (item) => {
-    mutateEditarCantidadDV({id:item.id,cantidad:newCantidad})
-    setEditIndex(null); // Salir del modo edición
+    mutateEditarCantidadDV({ id: item.id, cantidad: newCantidad });
+    setEditIndex(null);
   };
+
   const handleKeyDown = (e, item) => {
     if (e.key === "Enter") {
-      handleInputBlur(item); // Llama a `handleInputBlur` cuando se presiona Enter
+      handleInputBlur(item);
     }
   };
+
   const { data: items } = useQuery({
     queryKey: ["mostrar detalle venta", { id_venta: idventa }],
     queryFn: () => mostrardetalleventa({ id_venta: idventa }),
   });
+
   return (
-    <AreaDetalleventa className={items?.length > 0 ? "" : "animacion"}>
-    {items?.length > 0 ? (
-      items?.map((item, index) => {
-        return (
-          <Itemventa key={index}>
-            <article className="contentdescripcion">
-              <span className="descripcion">{item.descripcion}</span>
-              <span className="importe">
-                <strong>precio unit:</strong>
-                🪵
-                {FormatearNumeroDinero(
-                  item.precio_venta,
-                  dataempresa?.currency,
-                  dataempresa?.iso
-                )}
-              </span>
-              <ContentTotalResponsive>
-                <span className="importerespo">
-                  <strong>precio unit:</strong>
-                  🪵
-                  {FormatearNumeroDinero(
-                    item.precio_venta,
-                    dataempresa?.currency,
-                    dataempresa?.iso
-                  )}
-                </span>
-                <article className="contentTotaldetalleventarespon">
-                  <span className="cantidad">
-                    <strong>
-                      {FormatearNumeroDinero(
-                        item.total,
-                        dataempresa?.currency,
-                        dataempresa?.iso
-                      )}
-                    </strong>
-                  </span>
-                  <span
-                    className="delete"
-                    onClick={() => mutateEliminarDV(item)}
-                  >
-                    <Icon icon="weui:delete-filled" width="24" height="24" />
-                  </span>
-                </article>
-              </ContentTotalResponsive>
-            </article>
-            <article className="contentbtn">
-              <Btn1
-                funcion={() =>
-                  mutateEditarCantidadDV({
-                    id: item.id,
-                    cantidad: item.cantidad + 1,
-                  })
-                }
-                width="20px"
-                height="35px"
-                icono={<Icon icon="mdi:add-bold" />}
-              ></Btn1>
-              {editIndex === index ? (
-                <InputText2>
-                  <input
+    <Container>
+      {items?.length > 0 ? (
+        <ProductList>
+          {items?.map((item, index) => (
+            <ProductCard key={index}>
+              {/* Info del producto */}
+              <ProductInfo>
+                <ProductName>{item.descripcion}</ProductName>
+                <ProductPrice>
+                  <span>precio unit:</span>
+                  <PriceTag>
+                    {FormatearNumeroDinero(item.precio_venta, dataempresa?.currency, dataempresa?.iso)}
+                  </PriceTag>
+                </ProductPrice>
+              </ProductInfo>
+
+              {/* Controles de cantidad */}
+              <QuantityControls>
+                <QuantityButton
+                  onClick={() => mutateEditarCantidadDV({ id: item.id, cantidad: item.cantidad + 1 })}
+                >
+                  <Icon icon="lucide:plus" />
+                </QuantityButton>
+
+                {editIndex === index ? (
+                  <QuantityInput
                     type="number"
                     value={newCantidad}
                     onChange={handleInputChange}
                     onBlur={() => handleInputBlur(item)}
                     onKeyDown={(e) => handleKeyDown(e, item)}
-                    className="form__field"
                     min="1"
+                    autoFocus
                   />
-                </InputText2>
-              ) : (
-                <>
-                  <span className="cantidad">{item.cantidad}</span>
-                  <Icon
-                    icon="mdi:pencil"
-                    onClick={() => handleEditClick(index, item.cantidad)}
-                    className="edit-icon"
-                  />
-                </>
-              )}
+                ) : (
+                  <QuantityDisplay onClick={() => handleEditClick(index, item.cantidad)}>
+                    <span>{item.cantidad}</span>
+                    <Icon icon="lucide:pencil" className="edit-icon" />
+                  </QuantityDisplay>
+                )}
 
-              <Btn1
-                funcion={() =>
-                  mutateEditarCantidadDV({
-                    id: item.id,
-                    cantidad: item.cantidad - 1,
-                  })
-                }
-                width="20px"
-                height="35px"
-                icono={<Icon icon="subway:subtraction-1" />}
-              ></Btn1>
-            </article>
-            <article className="contentTotaldetalleventa">
-              <span className="cantidad">
-                <strong>
-                  {FormatearNumeroDinero(
-                    item.total,
-                    dataempresa?.currency,
-                    dataempresa?.iso
-                  )}
-                </strong>
-              </span>
-              <span className="delete" onClick={() => mutateEliminarDV(item)}>
-                <Icon icon="weui:delete-filled" width="24" height="24" />
-              </span>
-            </article>
-          </Itemventa>
-        );
-      })
-    ) : (
-      <Lottieanimacion animacion={animacionvacio} alto="200" ancho="200" />
-    )}
-  </AreaDetalleventa>
+                <QuantityButton
+                  onClick={() => mutateEditarCantidadDV({ id: item.id, cantidad: item.cantidad - 1 })}
+                  disabled={item.cantidad <= 1}
+                >
+                  <Icon icon="lucide:minus" />
+                </QuantityButton>
+              </QuantityControls>
+
+              {/* Total y eliminar */}
+              <ProductActions>
+                <ProductTotal>
+                  {FormatearNumeroDinero(item.total, dataempresa?.currency, dataempresa?.iso)}
+                </ProductTotal>
+                <DeleteButton onClick={() => mutateEliminarDV(item)}>
+                  <Icon icon="lucide:trash-2" />
+                </DeleteButton>
+              </ProductActions>
+            </ProductCard>
+          ))}
+        </ProductList>
+      ) : (
+        <EmptyState>
+          <Lottieanimacion animacion={animacionvacio} alto="180" ancho="180" />
+        </EmptyState>
+      )}
+    </Container>
   );
 }
-const ContentTotalResponsive = styled.div`
+
+// Styled Components - Minimalista
+const Container = styled.section`
   display: flex;
-  flex-direction: flex;
-  gap: 8px;
-  width: 100%;
-  justify-content: space-between;
-  .descripcionrespon {
-    font-weight: 700;
-    font-size: 20px;
-  }
-  .importerespo {
-    font-size: 15px;
-    display: flex;
-    width: 100%;
-  }
-  @media ${Device.laptop} {
-    display: none;
-  }
-  .contentTotaldetalleventarespon {
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: end;
-    text-align: end;
-    align-items: center;
-gap:8px;
-    width: 100%;
-    .delete {
-      cursor: pointer;
-      width: 20px;
-      align-self: center;
-    }
-  }
-`;
-const AreaDetalleventa = styled.section`
-  display: flex;
-  width: 100%;
-  margin-top: 10px;
   flex-direction: column;
-  gap: 10px;
-  max-height:calc(100vh - 500px);
-  overflow-y: auto; /* Activa el scroll solo en Y */
-  overflow-x: hidden; /* Oculta el scroll en X */
-      
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+`;
+
+const ProductList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 4px;
+  flex: 1;
+
   &::-webkit-scrollbar {
-  width: 12px;
-  background: rgba(24, 24, 24, 0.2);
-}
-
-&::-webkit-scrollbar-thumb {
-  background: rgba(148, 148, 148, 0.9);
-  border-radius: 10px;
-  filter: blur(10px);
-}
-
-  &.animacion {
-    height: 100%;
-    justify-content: center;
+    width: 6px;
   }
-  @media ${Device.laptop} {
-    max-height:initial;
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #d1d5db;
   }
 `;
-const Itemventa = styled.section`
+
+const ProductCard = styled.div`
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  width: 100%;
-  border-bottom: 1px dashed ${({ theme }) => theme.color2};
-  animation: ${blur_in} 0.2s linear both;
+  gap: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+`;
+
+const ProductInfo = styled.div`
+  display: flex;
   flex-direction: column;
-  gap: 10px;
-  .contentdescripcion {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+
+  @media (max-width: 768px) {
     width: 100%;
-    .descripcion {
-      font-weight: 700;
-      font-size: 20px;
-    }
-    .importe {
-      font-size: 15px;
-      display: none;
-      @media ${Device.laptop} {
-        display: block;
-      }
-    }
+    flex: none;
   }
-  .contentbtn {
-    display: flex;
+`;
+
+const ProductName = styled.span`
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ProductPrice = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+
+  span {
+    font-weight: 400;
+  }
+`;
+
+const PriceTag = styled.span`
+  color: #dc2626;
+  font-weight: 600;
+`;
+
+const QuantityControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  padding: 6px;
+  border-radius: 10px;
+`;
+
+const QuantityButton = styled.button`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #374151;
+  font-size: 16px;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    color: #111;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+const QuantityDisplay = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 60px;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+
+  span {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111;
+  }
+
+  .edit-icon {
+    font-size: 14px;
+    color: #9ca3af;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  &:hover .edit-icon {
+    opacity: 1;
+  }
+`;
+
+const QuantityInput = styled.input`
+  width: 60px;
+  height: 32px;
+  text-align: center;
+  border: 2px solid #6366f1;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  outline: none;
+  background: #fff;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+`;
+
+const ProductActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  @media (max-width: 768px) {
     width: 100%;
-    height: 100%;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
-    .cantidad {
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-    .edit-icon {
-      cursor: pointer;
-      font-size: 18px;
-    }
-  }
-  .contentTotaldetalleventa {
-    display: none;
-    @media ${Device.laptop} {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      text-align: end;
-      align-items: center;
-      margin-bottom: 10px;
-      width: 100%;
-      .delete {
-        cursor: pointer;
-        width: 20px;
-        align-self: center;
-      }
-    }
-  }
-  @media ${Device.tablet} {
-    display: flex;
     justify-content: space-between;
-    flex-direction: row;
-    .contentdescripcion {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: 100%;
-      .descripcion {
-        font-weight: 700;
-        font-size: 20px;
-      }
-      .importe {
-        font-size: 15px;
-      }
-    }
-    .contentbtn {
-      display: flex;
-      width: 100%;
-      height: 100%;
-      gap: 10px;
-      align-items: center;
-      justify-content: center;
-      .cantidad {
-        font-size: 1.8rem;
-        font-weight: 700;
-      }
-      .edit-icon {
-        cursor: pointer;
-        font-size: 18px;
-      }
-    }
   }
+`;
+
+const ProductTotal = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  min-width: 90px;
+  text-align: right;
+`;
+
+const DeleteButton = styled.button`
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #fef2f2;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #dc2626;
+  font-size: 18px;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #fee2e2;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 40px;
 `;

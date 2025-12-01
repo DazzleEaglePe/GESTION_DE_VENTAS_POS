@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { InventarioTemplate } from "../components/templates/InventarioTemplate";
 import { useEmpresaStore } from "../store/EmpresaStore";
 import { useProductosStore } from "../store/ProductosStore";
@@ -9,14 +10,19 @@ import styled from "styled-components";
 
 export const Inventario = () => {
   const { dataempresa } = useEmpresaStore();
-  const { mostrarProductos } = useProductosStore();
+  const { buscarProductos, resetProductosItemSelect } = useProductosStore();
   const { mostrarSucursales } = useSucursalesStore();
   const { mostrarCategorias } = useCategoriasStore();
 
-  // Cargar productos
+  // Resetear producto seleccionado al entrar a inventario
+  useEffect(() => {
+    resetProductosItemSelect();
+  }, []);
+
+  // Cargar productos SIN auto-seleccionar (usar buscarProductos en vez de mostrarProductos)
   const { isLoading: isLoadingProductos } = useQuery({
-    queryKey: ["mostrar productos", dataempresa?.id],
-    queryFn: () => mostrarProductos({ id_empresa: dataempresa?.id }),
+    queryKey: ["cargar productos inventario", dataempresa?.id],
+    queryFn: () => buscarProductos({ id_empresa: dataempresa?.id, buscador: "" }),
     enabled: !!dataempresa,
   });
 

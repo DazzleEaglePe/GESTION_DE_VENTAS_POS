@@ -28,7 +28,7 @@ import { useGlobalStore } from "../store/GlobalStore";
 //     enabled: !!dataempresa,
 //   });
 // };
-export const useInsertarMovStockMutation = () => {
+export const useInsertarMovStockMutation = (proveedorSelect) => {
   const queryClient = useQueryClient();
   const {  productosItemSelect,resetProductosItemSelect } = useProductosStore();
  const { itemSelect ,setStateClose} = useGlobalStore();
@@ -38,7 +38,7 @@ export const useInsertarMovStockMutation = () => {
     useAlmacenesStore();
    
   const fechaActual = useFormattedDate();
-  console.log("dataStock",dataStock)
+  
   return useMutation({
     mutationKey: ["insertar movimiento stock"],
     mutationFn: async (data) => {
@@ -51,6 +51,7 @@ export const useInsertarMovStockMutation = () => {
         fecha: fechaActual,
         detalle: "registro de inventario manual",
         origen: "inventario",
+        id_proveedor: tipo === "ingreso" ? (proveedorSelect?.id || null) : null,
       };
       
       // Parámetros para la función atómica
@@ -63,8 +64,6 @@ export const useInsertarMovStockMutation = () => {
         precio_venta: parseFloat(data.precio_venta),
         id_producto: productosItemSelect?.id,
       };
-      
-      console.log("Ejecutando transacción atómica con params:", params);
       
       // Una sola llamada que hace todo atómicamente
       await RegistrarMovimientoAtomico(params);

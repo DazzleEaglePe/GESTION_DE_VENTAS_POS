@@ -11,6 +11,11 @@ export async function MostrarMovStock(p) {
         sucursales!inner(
           *
         )
+      ),
+      proveedor:clientes_proveedores!id_proveedor(
+        id,
+        nombres,
+        identificador_fiscal
       )
     `
     )

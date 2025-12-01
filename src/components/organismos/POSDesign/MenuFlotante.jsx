@@ -28,6 +28,7 @@ export function MenuFlotante() {
       toast.success("Venta eliminada")
       toggleMenu()
       queryClient.invalidateQueries(["mostrar detalle venta"])
+      queryClient.invalidateQueries(["venta pendiente"])
     }
   })
  

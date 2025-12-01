@@ -17,8 +17,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAsignacionCajaSucursalStore } from "../store/AsignacionCajaSucursalStore";
 import { usePermisosStore } from "../store/PermisosStore";
 import { useMostrarSucursalAsignadasQuery } from "../tanstack/AsignacionesSucursalStack";
+import { useSidebarStore } from "../store/SidebarStore";
+
 export function Layout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { sidebarOpen, toggleSidebar } = useSidebarStore();
   const [stateMenu, setStateMenu] = useState(false);
 
   const { mostrarusuarios } = useUsuariosStore();
@@ -77,7 +79,7 @@ export function Layout({ children }) {
       <section className="contentSidebar">
         <Sidebar
           state={sidebarOpen}
-          setState={() => setSidebarOpen(!sidebarOpen)}
+          setState={toggleSidebar}
         />
       </section>
       <section className="contentMenuhambur">

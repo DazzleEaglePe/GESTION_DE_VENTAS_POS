@@ -136,6 +136,7 @@ export function InventarioTemplate() {
       "Sucursal": mov.almacen?.sucursales?.nombre || "-",
       "Almacén": mov.almacen?.nombre || "-",
       "Movimiento": mov.detalle || "-",
+      "Proveedor": mov.proveedor?.nombres || "-",
       "Origen": mov.origen || "-",
       "Tipo": mov.tipo_movimiento || "-",
       "Cantidad": mov.tipo_movimiento?.toLowerCase() === "ingreso" ? `+${mov.cantidad}` : `-${mov.cantidad}`,
@@ -150,6 +151,7 @@ export function InventarioTemplate() {
       { wch: 18 }, // Sucursal
       { wch: 20 }, // Almacén
       { wch: 30 }, // Movimiento
+      { wch: 25 }, // Proveedor
       { wch: 12 }, // Origen
       { wch: 10 }, // Tipo
       { wch: 12 }, // Cantidad

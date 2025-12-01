@@ -16,7 +16,7 @@ import { useCierreCajaStore } from "../../../store/CierreCajaStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useStockStore } from "../../../store/StockStore";
-import { useEliminarVentasIncompletasMutate } from "../../../tanstack/VentasStack";
+import { useEliminarVentasIncompletasMutate, useMostrarVentaPendienteQuery } from "../../../tanstack/VentasStack";
 import { Reloj } from "../Reloj";
 import { ListaDesplegable } from "../ListaDesplegable";
 
@@ -131,11 +131,30 @@ export function HeaderPos() {
     const value = Math.max(0, parseFloat(e.target.value));
     setCantidadInput(value);
   };
-  const {mutate} = useEliminarVentasIncompletasMutate();
+  
+  // Recuperar venta pendiente al cargar el POS
+  const { data: ventaPendiente, isLoading: isLoadingVentaPendiente } = useMostrarVentaPendienteQuery();
+  
+  // Mutación opcional para eliminar ventas incompletas (ya no se usa automáticamente)
+  const { mutate: eliminarVentasIncompletas } = useEliminarVentasIncompletasMutate();
+  
   useEffect(() => {
     buscadorRef.current.focus();
-   mutate()
+    // Ya no eliminamos automáticamente, ahora recuperamos la venta pendiente
   }, []);
+
+  // Efecto para notificar cuando se recupera una venta pendiente
+  useEffect(() => {
+    if (ventaPendiente?.id && !isLoadingVentaPendiente) {
+      const cantidadProductos = ventaPendiente.detalle_venta?.[0]?.count || 0;
+      if (cantidadProductos > 0) {
+        toast.info(`Se recuperó tu venta pendiente con ${cantidadProductos} producto(s)`, {
+          duration: 3000,
+        });
+      }
+    }
+  }, [ventaPendiente, isLoadingVentaPendiente]);
+
   useEffect(() => {
     let timeout;
     const texto = buscador.trim();
