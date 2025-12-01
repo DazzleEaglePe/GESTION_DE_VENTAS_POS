@@ -25,6 +25,33 @@ export async function EliminarVentasIncompletas(p) {
     throw new Error(error.message);
   }
 }
+
+// Buscar venta pendiente para recuperar al volver al POS
+export async function MostrarVentaPendiente(p) {
+  const { data, error } = await supabase
+    .from(tabla)
+    .select(`
+      *,
+      detalle_venta(count)
+    `)
+    .eq("estado", "pendiente")
+    .eq("id_usuario", p.id_usuario)
+    .eq("id_cierre_caja", p.id_cierre_caja)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  // Solo retornar si tiene productos en el detalle
+  if (data && data.detalle_venta?.[0]?.count > 0) {
+    return data;
+  }
+  
+  return null;
+}
 export async function EliminarVenta(p) {
   const { error } = await supabase
     .from(tabla)

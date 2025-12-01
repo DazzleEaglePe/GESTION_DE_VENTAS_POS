@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { Icon } from "@iconify/react";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { useGlobalStore } from "../../../store/GlobalStore";
 import { useProductosStore } from "../../../store/ProductosStore";
 import { useMovStockStore } from "../../../store/MovStockStore";
@@ -8,6 +9,8 @@ import { useInsertarMovStockMutation } from "../../../tanstack/MovStockStack";
 import { useAlmacenesStore } from "../../../store/AlmacenesStore";
 import { useStockStore } from "../../../store/StockStore";
 import { useSucursalesStore } from "../../../store/SucursalesStore";
+import { useClientesProveedoresStore } from "../../../store/ClientesProveedoresStore";
+import { useEmpresaStore } from "../../../store/EmpresaStore";
 import { useQuery } from "@tanstack/react-query";
 import { SelectList } from "../../ui/lists/SelectList";
 
@@ -18,6 +21,12 @@ export function RegistrarInventario({ setIsExploding }) {
   const { almacenSelectItem, mostrarAlmacenesXSucursal, setAlmacenSelectItem, dataAlmacenesXsucursal } = useAlmacenesStore();
   const { mostrarStockXAlmacenYProducto, dataStockXAlmacenYProducto } = useStockStore();
   const { sucursalesItemSelect, dataSucursales, selectSucursal } = useSucursalesStore();
+  const { buscarCliPro } = useClientesProveedoresStore();
+  const { dataempresa } = useEmpresaStore();
+  
+  // Estado para proveedor
+  const [proveedorSelect, setProveedorSelect] = useState(null);
+  const [busquedaProveedor, setBusquedaProveedor] = useState("");
 
   const {
     register,
@@ -47,7 +56,18 @@ export function RegistrarInventario({ setIsExploding }) {
     enabled: !!almacenSelectItem?.id && !!productosItemSelect?.id,
   });
 
-  const mutation = useInsertarMovStockMutation();
+  // Buscar proveedores
+  const { data: dataProveedores } = useQuery({
+    queryKey: ["buscar proveedores inventario", busquedaProveedor],
+    queryFn: () => buscarCliPro({ 
+      id_empresa: dataempresa?.id, 
+      tipo: "proveedor",
+      buscador: busquedaProveedor 
+    }),
+    enabled: !!dataempresa?.id && busquedaProveedor.length > 0,
+  });
+
+  const mutation = useInsertarMovStockMutation(proveedorSelect);
 
   const handlesub = (data) => {
     mutation.mutate(data, {
@@ -120,6 +140,64 @@ export function RegistrarInventario({ setIsExploding }) {
                 </TypeBtn>
               </TypeToggle>
             </InputGroup>
+
+            {/* Proveedor - Solo para ingresos */}
+            {tipo === "ingreso" && (
+              <InputGroup>
+                <Label>
+                  <Icon icon="lucide:truck" width="14" style={{ marginRight: "6px" }} />
+                  Proveedor (opcional)
+                </Label>
+                <ProveedorSearchContainer>
+                  <InputWrapper>
+                    <InputIcon>
+                      <Icon icon="lucide:search" />
+                    </InputIcon>
+                    <Input
+                      type="text"
+                      placeholder="Buscar proveedor..."
+                      value={busquedaProveedor}
+                      onChange={(e) => setBusquedaProveedor(e.target.value)}
+                    />
+                    {busquedaProveedor && (
+                      <ClearSearchBtn type="button" onClick={() => { setBusquedaProveedor(""); setProveedorSelect(null); }}>
+                        <Icon icon="lucide:x" width="14" />
+                      </ClearSearchBtn>
+                    )}
+                  </InputWrapper>
+                  
+                  {/* Dropdown de proveedores */}
+                  {busquedaProveedor && dataProveedores && dataProveedores.length > 0 && !proveedorSelect && (
+                    <ProveedorDropdown>
+                      {dataProveedores.map((prov) => (
+                        <ProveedorItem 
+                          key={prov.id} 
+                          onClick={() => {
+                            setProveedorSelect(prov);
+                            setBusquedaProveedor(prov.nombres);
+                          }}
+                        >
+                        <Icon icon="lucide:building" width="14" />
+                        <span>{prov.nombres}</span>
+                        {prov.identificador_fiscal && <small>{prov.identificador_fiscal}</small>}
+                      </ProveedorItem>
+                      ))}
+                    </ProveedorDropdown>
+                  )}
+                  
+                  {/* Proveedor seleccionado */}
+                  {proveedorSelect && (
+                    <ProveedorSelected>
+                      <Icon icon="lucide:check-circle" width="14" />
+                      <span>{proveedorSelect.nombres}</span>
+                      <RemoveProvBtn type="button" onClick={() => { setProveedorSelect(null); setBusquedaProveedor(""); }}>
+                        <Icon icon="lucide:x" width="12" />
+                      </RemoveProvBtn>
+                    </ProveedorSelected>
+                  )}
+                </ProveedorSearchContainer>
+              </InputGroup>
+            )}
 
             {/* Sucursal y Almacén */}
             <FormGrid>
@@ -529,5 +607,107 @@ const CloseStateBtn = styled.button`
 
   &:hover {
     background: #f3f4f6;
+  }
+`;
+
+// Styled Components para Proveedor
+const ProveedorSearchContainer = styled.div`
+  position: relative;
+`;
+
+const ClearSearchBtn = styled.button`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: #6b7280;
+  }
+`;
+
+const ProveedorDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-top: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+`;
+
+const ProveedorItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f5f5f5;
+  }
+
+  svg {
+    color: #9ca3af;
+  }
+
+  span {
+    flex: 1;
+    font-size: 14px;
+    color: #111;
+  }
+
+  small {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+`;
+
+const ProveedorSelected = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #166534;
+
+  svg {
+    color: #22c55e;
+  }
+
+  span {
+    flex: 1;
+  }
+`;
+
+const RemoveProvBtn = styled.button`
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+
+  &:hover {
+    background: #fef2f2;
   }
 `;

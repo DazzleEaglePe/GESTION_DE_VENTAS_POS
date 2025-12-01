@@ -1709,16 +1709,26 @@ SET default_table_access_method = heap;
 -- Name: confirmar_venta(integer, integer, numeric, integer, character varying, integer, integer, timestamp without time zone, numeric); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
+DROP FUNCTION IF EXISTS public.confirmar_venta(integer, integer, numeric, integer, character varying, integer, integer, timestamp without time zone, numeric);
+
 CREATE FUNCTION public.confirmar_venta(_id_venta integer, _id_usuario integer, _vuelto numeric, _id_tipo_comprobante integer, _serie character varying, _id_sucursal integer, _id_cliente integer, _fecha timestamp without time zone, _monto_total numeric) RETURNS SETOF public.ventas
     LANGUAGE plpgsql
     AS $$
 DECLARE
     nuevo_comprobante TEXT;
+    total_productos INTEGER;
 BEGIN
   -- Generar número de comprobante automáticamente con el ID del tipo de comprobante
-  select generar_nro_comprobante(_id_tipo_comprobante, _serie, _id_sucursal)
+  SELECT generar_nro_comprobante(_id_tipo_comprobante, _serie, _id_sucursal)
   INTO nuevo_comprobante;
-   -- Actualizar la venta existente con el número de comprobante, cliente y estado confirmado
+  
+  -- Calcular la cantidad total de productos vendidos
+  SELECT COALESCE(SUM(cantidad), 0)::INTEGER
+  INTO total_productos
+  FROM detalle_venta
+  WHERE id_venta = _id_venta;
+  
+  -- Actualizar la venta existente con el número de comprobante, cliente, estado y cantidad de productos
   UPDATE ventas
   SET 
       estado = 'confirmada',
@@ -1727,9 +1737,11 @@ BEGIN
       vuelto = _vuelto,
       id_cliente = _id_cliente,
       fecha = _fecha,
-      monto_total = _monto_total
-      WHERE id = _id_venta;
-       RETURN QUERY SELECT * FROM ventas WHERE id = _id_venta;
+      monto_total = _monto_total,
+      cantidad_productos = total_productos
+  WHERE id = _id_venta;
+  
+  RETURN QUERY SELECT * FROM ventas WHERE id = _id_venta;
 END; 
 $$;
 
@@ -3159,22 +3171,29 @@ ALTER FUNCTION public.reducirstock(_id integer, cantidad numeric) OWNER TO postg
 -- Name: report_stock_bajo_minimo(integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.report_stock_bajo_minimo(sucursal_id integer, almacen_id integer) RETURNS TABLE(codigo_articulo text, descripcion_articulo text, stock numeric, stock_minimo numeric, precio_costo numeric, total numeric)
+DROP FUNCTION IF EXISTS public.report_stock_bajo_minimo(integer, integer);
+
+CREATE FUNCTION public.report_stock_bajo_minimo(sucursal_id integer, almacen_id integer DEFAULT NULL) RETURNS TABLE(codigo_articulo text, descripcion_articulo text, sucursal_nombre text, almacen_nombre text, stock numeric, stock_minimo numeric, faltante numeric, precio_costo numeric, total numeric)
     LANGUAGE sql
     AS $$
 SELECT 
     p.codigo_interno AS codigo_articulo,
     p.nombre AS descripcion_articulo,
+    suc.nombre AS sucursal_nombre,
+    a.nombre AS almacen_nombre,
     s.stock,
     s.stock_minimo,
+    (s.stock_minimo - s.stock) AS faltante,
     p.precio_compra AS precio_costo,
     (s.stock * p.precio_compra) AS total
 FROM stock s
 INNER JOIN almacen a ON s.id_almacen = a.id
+INNER JOIN sucursales suc ON a.id_sucursal = suc.id
 INNER JOIN productos p ON s.id_producto = p.id
 WHERE a.id_sucursal = sucursal_id
-AND a.id = almacen_id
-AND s.stock < s.stock_minimo;  -- 🔥 SOLO PRODUCTOS CON STOCK BAJO MÍNIMO
+AND (almacen_id IS NULL OR a.id = almacen_id)
+AND s.stock < s.stock_minimo
+ORDER BY (s.stock_minimo - s.stock) DESC;
 $$;
 
 

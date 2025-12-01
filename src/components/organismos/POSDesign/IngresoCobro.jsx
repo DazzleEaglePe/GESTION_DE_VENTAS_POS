@@ -136,6 +136,7 @@ export const IngresoCobro = forwardRef((props, ref) => {
       }
       resetState();
       queryClient.invalidateQueries(["mostrar detalle venta"]);
+      queryClient.invalidateQueries(["venta pendiente"]);
       toast.success("🎉 venta generada correctamente!!!");
     },
   });
@@ -386,61 +387,35 @@ export const IngresoCobro = forwardRef((props, ref) => {
 const Container = styled.div`
   position: relative;
   box-sizing: border-box;
-  width: 400px;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 2px 2px 15px 0px #e2e2e2;
-  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+  padding: 24px;
+  border-radius: 16px;
+  gap: 16px;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
-  color: #000;
-  min-height: 100%;
+  background-color: #fff;
+  color: #111;
   align-items: center;
-  justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
 
   input {
-    color: #000 !important;
-    font-weight: 700;
+    color: #111 !important;
+    font-weight: 600;
   }
-  &:before,
-  &:after {
-    content: "";
-    position: absolute;
-    left: 5px;
-    height: 6px;
-    width: 380px;
-  }
-  &:before {
-    top: -5px;
-    background: radial-gradient(
-        circle,
-        transparent,
-        transparent 50%,
-        #fbfbfb 50%,
-        #fbfbfb 100%
-      ) -7px -8px / 16px 16px repeat-x;
-  }
-  &:after {
-    bottom: -5px;
-    background: radial-gradient(
-        circle,
-        transparent,
-        transparent 50%,
-        #fbfbfb 50%,
-        #fbfbfb 100%
-      ) -7px -2px / 16px 16px repeat-x;
-  }
+
   .area1 {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    
     .areacomprobantes {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       padding: 10px;
+      width: 100%;
       .box {
         flex: 1 1 40%;
         display: flex;
@@ -449,28 +424,33 @@ const Container = styled.div`
     }
     .tipocobro {
       position: absolute;
-      right: 6px;
-      top: 6px;
-      background-color: rgba(233, 6, 184, 0.2);
-      padding: 5px;
+      right: 10px;
+      top: 10px;
+      background-color: rgba(233, 6, 184, 0.15);
+      padding: 6px 12px;
       color: #e61eb1;
-      border-radius: 5px;
-      font-size: 15px;
-      font-weight: 650;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
     }
     .cliente {
-      font-weight: 700;
+      font-weight: 600;
+      font-size: 15px;
+      color: #333;
     }
   }
   .area2 {
+    width: 100%;
     input {
-      font-size: 40px;
+      font-size: 36px;
+      text-align: center;
     }
   }
   .area3 {
     display: flex;
     justify-content: space-between;
     width: 100%;
+    padding: 0 8px;
 
     article {
       display: flex;
@@ -483,24 +463,36 @@ const Container = styled.div`
       text-align: end;
     }
   }
+  .area4 {
+    width: 100%;
+    margin-top: 8px;
+  }
 `;
 
 const Linea = styled.span`
   width: 100%;
-  border-bottom: dashed 1px #d4d4d4;
+  border-bottom: 1px dashed #e5e5e5;
+  margin: 8px 0;
 `;
 const EditButton = styled.button`
-  background-color: #62c6f7;
+  background-color: #3b82f6;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: auto;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #2563eb;
+    transform: scale(1.05);
+  }
+
   .icono {
-    font-size: 20px;
+    font-size: 16px;
+    color: #fff;
   }
 `;

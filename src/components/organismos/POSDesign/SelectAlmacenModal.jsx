@@ -12,13 +12,10 @@ import { useCierreCajaStore } from "../../../store/CierreCajaStore";
 import { useStockStore } from "../../../store/StockStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { slideBackground } from "../../../styles/keyframes";
-import { Btn1 } from "../../moleculas/Btn1";
-import { BtnClose } from "../../ui/buttons/BtnClose";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import {InputText2} from "../formularios/InputText2"
 import { useFormattedDate } from "../../../hooks/useFormattedDate";
 import { useUsuariosStore } from "../../../store/UsuariosStore";
+
 export const SelectAlmacenModal = () => {
   const [cantidadInput, setCantidadInput] = useState(1);
   const fechaactual = useFormattedDate()
@@ -96,231 +93,422 @@ export const SelectAlmacenModal = () => {
     const value = Math.max(0, parseFloat(e.target.value));
     setCantidadInput(value);
   };
+
   return (
-    <Container>
-      <SubContainer>
-        <BtnClose funcion={() => setStateModal(false)} />
-        <HeaderContainer>
-          <SubContainerHeader>
-            <ContainerLabel>
-              <span>producto:</span>
-            </ContainerLabel>
-            <ContainerProducto>{productosItemSelect?.nombre}</ContainerProducto>
-            <CommandText>
-              <Icon icon="fluent-emoji:cat-face" width="32" height="32" />
-            </CommandText>
-          </SubContainerHeader>
-        </HeaderContainer>
-        <ContentMensaje>
-          <SubTitle>
-            Se encontro <strong>stock</strong> en estos otros almacenes,
-            seleccione un almacen a usar.
-          </SubTitle>
-        </ContentMensaje>
-        <div className="contentCantidad">
-          <InputText2>
-            <input
+    <Overlay>
+      <ModalContainer>
+        {/* Header */}
+        <ModalHeader>
+          <HeaderContent>
+            <ProductIcon>
+              <Icon icon="lucide:package" />
+            </ProductIcon>
+            <HeaderText>
+              <ProductName>{productosItemSelect?.nombre}</ProductName>
+              <ProductSubtitle>Seleccionar almacén alternativo</ProductSubtitle>
+            </HeaderText>
+          </HeaderContent>
+          <CloseButton onClick={() => setStateModal(false)}>
+            <Icon icon="lucide:x" />
+          </CloseButton>
+        </ModalHeader>
+
+        {/* Message */}
+        <MessageSection>
+          <Icon icon="lucide:info" />
+          <span>Se encontró <strong>stock</strong> en otros almacenes. Selecciona uno para continuar.</span>
+        </MessageSection>
+
+        {/* Cantidad Input */}
+        <InputSection>
+          <InputLabel>Cantidad</InputLabel>
+          <InputWrapper>
+            <Icon icon="lucide:hash" />
+            <StyledInput
               type="number"
               min="1"
               value={cantidadInput}
               onChange={ValidarCantidad}
-              placeholder="cantidad..."
-              className="form__field"
+              placeholder="1"
             />
-          </InputText2>
-        </div>
-        <Avatar $bg="#d7360e">
-          <ContainerTable>
-            <table className="responsive-table">
-              <thead>
-                <tr>
-                  <th>
-                    Almacen <span style={{ cursor: "pointer" }}>🔶</span>
-                  </th>
-                  <th>
-                    Stock <span style={{ cursor: "pointer" }}>🔷</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data?.map((item, index) => {
-                  return (
-                    <tr
-                      key={index}
-                      onClick={() => Controladorinsertarventas(item)}
-                    >
-                      <td>{item?.almacen.nombre} </td>
-                      <td>{item?.stock} </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </ContainerTable>
-          <Btn1
-            bgcolor={"#d7360e"}
-            color={"#fff"}
-            titulo={"Volver"}
-            funcion={() => setStateModal(false)}
-            disabled={isPending}
-          />
-        </Avatar>
-      </SubContainer>
-    </Container>
+          </InputWrapper>
+        </InputSection>
+
+        {/* Almacenes Table */}
+        <TableSection>
+          <TableHeader>
+            <span>Almacenes disponibles</span>
+            <Badge>{data?.length || 0}</Badge>
+          </TableHeader>
+          
+          {data?.length > 0 ? (
+            <AlmacenList>
+              {data?.map((item, index) => (
+                <AlmacenItem
+                  key={index}
+                  onClick={() => Controladorinsertarventas(item)}
+                  disabled={isPending}
+                >
+                  <AlmacenInfo>
+                    <Icon icon="lucide:warehouse" />
+                    <AlmacenDetails>
+                      <AlmacenName>{item?.almacen?.nombre || 'Sin nombre'}</AlmacenName>
+                      <SucursalName>{item?.almacen?.sucursales?.nombre || 'Sin sucursal'}</SucursalName>
+                    </AlmacenDetails>
+                  </AlmacenInfo>
+                  <StockBadge $hasStock={item?.stock > 0}>
+                    <Icon icon="lucide:package" />
+                    {item?.stock} uds
+                  </StockBadge>
+                </AlmacenItem>
+              ))}
+            </AlmacenList>
+          ) : (
+            <EmptyState>
+              <Icon icon="lucide:package-x" />
+              <span>No hay almacenes con stock disponible</span>
+            </EmptyState>
+          )}
+        </TableSection>
+
+        {/* Footer */}
+        <ModalFooter>
+          <CancelButton onClick={() => setStateModal(false)} disabled={isPending}>
+            <Icon icon="lucide:arrow-left" />
+            Volver
+          </CancelButton>
+        </ModalFooter>
+      </ModalContainer>
+    </Overlay>
   );
 };
-const ContainerTable = styled.div`
-  position: relative;
 
-  .responsive-table {
-    width: 100%;
-    margin-bottom: 1.5em;
-    border-spacing: 0;
-    font-size: 0.9em; /* Tamaño de fuente predeterminado */
-
-    thead {
-      position: relative;
-      padding: 0;
-      border: 0;
-      height: auto;
-      width: auto;
-      overflow: auto;
-
-      th {
-        border-bottom: 1px solid ${({ theme }) => theme.color2};
-        font-weight: 700;
-        text-align: center;
-        color: ${({ theme }) => theme.text};
-        &:first-of-type {
-          text-align: center;
-        }
-      }
-    }
-
-    tbody {
-      tr {
-        display: table-row; /* Siempre se mantendrá como fila */
-        margin-bottom: 0;
-        cursor: pointer;
-
-        &:nth-of-type(even) {
-          background-color: rgba(161, 161, 161, 0.1);
-        }
-
-        td {
-          text-align: center;
-          padding: 0.5em;
-          border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-
-          @media (max-width: 768px) {
-            padding: 0.4em;
-          }
-        }
-      }
-    }
-  }
-`;
-const SubTitle = styled.span`
-  font-size: 18px;
-`;
-const CommandText = styled.p`
-  font-size: 14px;
-  margin: 0;
-`;
-
-const ContainerProducto = styled.div`
-  display: flex;
-  gap: 10px;
-  flex-direction: column;
-  text-align: start;
-`;
-const SubContainer = styled.div`
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 8px;
-  background-color: ${({ theme }) => theme.bgtotal};
-  position: relative;
-`;
-const ContainerLabel = styled.div`
-  display: flex;
-  gap: 10px;
-  flex-direction: column;
-  text-align: end;
-  font-weight: bold;
-`;
-const HeaderContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-  position: relative;
-  border-bottom: solid 1px ${({ theme }) => theme.bg};
-  margin-bottom: 20px;
-`;
-
-const SubContainerHeader = styled.div`
-  display: flex;
-  gap: 12px;
-  font-size: 22px;
-`;
-const ContentMensaje = styled.section`
-  display: flex;
-  gap: 15px;
-  margin-bottom: 10px;
-`;
-const Container = styled.div`
-  background-color: rgba(18, 18, 18, 0.5);
-  border-radius: 10px;
-  margin: auto;
-  height: 100vh;
-  display: flex;
-  align-items: center;
+// Styled Components - Minimalista
+const Overlay = styled.div`
   position: fixed;
-  z-index: 100;
-  width: 100%;
-  justify-content: center;
-`;
-
-const Title = styled.span`
-  font-size: 44px;
-  margin-bottom: 20px;
-  font-weight: bold;
-  position: absolute;
-  top: 50px;
-  right: 0;
-  left: 0;
-  text-align: center;
-`;
-
-const Avatar = styled.div`
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
-  position: relative;
-  border-radius: 10px;
-  height: 200px;
-  flex-direction: column;
   justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+`;
+
+const ModalContainer = styled.div`
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const ProductIcon = styled.div`
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+`;
+
+const HeaderText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const ProductName = styled.h3`
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+`;
+
+const ProductSubtitle = styled.span`
+  font-size: 13px;
+  color: #666;
+`;
+
+const CloseButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #e5e5e5;
+    color: #111;
+  }
+`;
+
+const MessageSection = styled.div`
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
+  padding: 16px 20px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-size: 13px;
+  line-height: 1.5;
 
-  .nombre {
-    font-size: 30px;
-    font-weight: bold;
-    cursor: pointer;
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
   }
-  .anuncio {
-    text-align: center;
-    font-weight: bold;
-    color: #fff;
-  }
-  background-color: ${(props) => props.$bg};
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 120 120'%3E%3Cpolygon fill='%23000' fill-opacity='0.19' points='120 0 120 60 90 30 60 0 0 0 0 0 60 60 0 120 60 120 90 90 120 60 120 0'/%3E%3C/svg%3E");
 
-  background-size: 60px 60px;
-  animation: ${slideBackground} 10s linear infinite;
+  strong {
+    font-weight: 600;
+  }
+`;
+
+const InputSection = styled.div`
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+`;
+
+const InputLabel = styled.label`
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+`;
+
+const InputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 12px;
+  transition: all 0.15s;
+
+  &:focus-within {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  svg {
+    color: #9ca3af;
+    font-size: 16px;
+  }
+`;
+
+const StyledInput = styled.input`
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 15px;
+  color: #111;
+  outline: none;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+`;
+
+const TableSection = styled.div`
+  padding: 16px 20px;
+`;
+
+const TableHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+  }
+`;
+
+const Badge = styled.span`
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+`;
+
+const AlmacenList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+`;
+
+const AlmacenItem = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #f0fdf4;
+    border-color: #22c55e;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const AlmacenInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #374151;
+
+  svg {
+    font-size: 18px;
+    color: #6b7280;
+  }
+`;
+
+const AlmacenDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+`;
+
+const AlmacenName = styled.span`
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+`;
+
+const SucursalName = styled.span`
+  font-size: 12px;
+  color: #6b7280;
+`;
+
+const StockBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: ${({ $hasStock }) => $hasStock ? '#dcfce7' : '#fee2e2'};
+  color: ${({ $hasStock }) => $hasStock ? '#16a34a' : '#dc2626'};
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+
+  svg {
+    font-size: 14px;
+  }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 20px;
+  color: #9ca3af;
+
+  svg {
+    font-size: 32px;
+  }
+
+  span {
+    font-size: 13px;
+  }
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+`;
+
+const CancelButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  svg {
+    font-size: 16px;
+  }
 `;

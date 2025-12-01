@@ -3,6 +3,7 @@ import {
   InsertarVentas,
   EliminarVentasIncompletas,
   MostrarVentasXsucursal,
+  MostrarVentaPendiente,
   useClientesProveedoresStore,
   ConfirmarVenta,
   EliminarVenta,
@@ -26,6 +27,8 @@ export const useVentasStore = create((set, get) => ({
     selectCliPro([]);
     set(initialState);
   },
+  // Setter directo para idventa (usado al recuperar venta pendiente)
+  setIdVenta: (id) => set({ idventa: id }),
   setStatePantallaCobro: (p) =>
     set((state) => {
       if (p.data.length === 0) {
@@ -49,6 +52,14 @@ export const useVentasStore = create((set, get) => ({
   },
   eliminarventasIncompletas: async (p) => {
     await EliminarVentasIncompletas(p);
+  },
+  // Buscar venta pendiente para recuperar al volver al POS
+  mostrarVentaPendiente: async (p) => {
+    const response = await MostrarVentaPendiente(p);
+    if (response?.id) {
+      set({ idventa: response.id });
+    }
+    return response;
   },
   eliminarVenta: async (p) => {
     const { resetState } = get();

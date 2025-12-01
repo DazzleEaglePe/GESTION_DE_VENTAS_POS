@@ -56,6 +56,20 @@ export function TablaInventarios({ data }) {
       cell: (info) => <span>{info.getValue() || "-"}</span>,
     },
     {
+      accessorKey: "proveedor.nombres",
+      header: "Proveedor",
+      cell: (info) => {
+        const proveedor = info.getValue();
+        if (!proveedor) return <span style={{ color: '#9ca3af' }}>-</span>;
+        return (
+          <ProveedorCell>
+            <Icon icon="lucide:truck" width="14" />
+            {proveedor}
+          </ProveedorCell>
+        );
+      },
+    },
+    {
       accessorKey: "origen",
       header: "Origen",
       cell: (info) => {
@@ -287,6 +301,18 @@ const LocationCell = styled.div`
 
   svg {
     color: #9ca3af;
+  }
+`;
+
+const ProveedorCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #374151;
+  font-size: 13px;
+
+  svg {
+    color: #6366f1;
   }
 `;
 

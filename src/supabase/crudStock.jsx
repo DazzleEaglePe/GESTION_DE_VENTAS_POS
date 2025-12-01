@@ -43,11 +43,11 @@ export async function MostrarStockXAlmacenYProducto(p) {
     .maybeSingle();
   return data;
 }
+// Buscar stock en TODOS los almacenes que tengan el producto (para mostrar alternativas)
 export async function MostrarStockXAlmacenesYProducto(p) {
   const { data } = await supabase
     .from(tabla)
-    .select(`*, almacen(*)`)
-    .eq("id_almacen", p.id_almacen)
+    .select(`*, almacen(*, sucursales(*))`)
     .eq("id_producto", p.id_producto)
     .gt("stock", 0);
   return data;
