@@ -25,6 +25,7 @@ import { ConfiguracionTicket } from "../pages/ConfiguracionTicket";
 import { MiPerfil } from "../pages/MiPerfil";
 import { SerializacionComprobantes } from "../pages/SerializacionComprobantes";
 import { Reportes } from "../pages/Reportes";
+import { ElementosEliminados } from "../pages/ElementosEliminados";
 
 export function MyRoutes() {
   return (
@@ -229,6 +230,16 @@ export function MyRoutes() {
           <Layout>
             <ProtectedRoute accessBy="authenticated">
               <Almacenes />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/eliminados"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <ElementosEliminados />
             </ProtectedRoute>
           </Layout>
         }

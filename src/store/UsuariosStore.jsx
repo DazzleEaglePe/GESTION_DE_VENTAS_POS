@@ -39,7 +39,7 @@ export const useUsuariosStore = create((set) => ({
     }
   },
   eliminarUsuarioAsignado: async (p) => {
-    await EliminarUsuarioAsignado(p);
+    return await EliminarUsuarioAsignado(p);
   },
   insertarUsuario: async (p) => {
     const selectModules = usePermisosStore.getState().selectedModules || [];

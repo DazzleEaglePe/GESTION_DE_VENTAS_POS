@@ -57,10 +57,9 @@ export function POSTemplate() {
 const Container = styled.div`
   height: calc(100vh - 60px);
   padding: 16px;
-  padding-top: 56px;
   display: grid;
-  gap: 16px;
-  background: #f8f9fa;
+  gap: 12px;
+  background: #fafafa;
   grid-template:
     "header" auto
     "main" 1fr;

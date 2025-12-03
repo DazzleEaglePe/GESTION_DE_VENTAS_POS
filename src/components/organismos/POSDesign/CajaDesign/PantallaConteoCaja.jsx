@@ -4,11 +4,12 @@ import { useAuthStore } from "../../../../store/AuthStore";
 import { useEmpresaStore } from "../../../../store/EmpresaStore";
 import { useUsuariosStore } from "../../../../store/UsuariosStore";
 import { useMovCajaStore } from "../../../../store/MovCajaStore";
+import { useVentasStore } from "../../../../store/VentasStore";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useCierreCajaStore } from "../../../../store/CierreCajaStore";
 import { useFormattedDate } from "../../../../hooks/useFormattedDate";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 
@@ -25,6 +26,7 @@ export function PantallaConteoCaja() {
     setStateConteoCaja,
     setStateCierraCaja,
   } = useCierreCajaStore();
+  const { contarVentasPendientes, eliminarVentasPendientesPorCierre } = useVentasStore();
   const queryClient = useQueryClient();
   const {
     register,
@@ -33,8 +35,27 @@ export function PantallaConteoCaja() {
     reset,
   } = useForm();
 
+  // Query para verificar ventas pendientes
+  const { data: ventasPendientes = 0, isLoading: isLoadingPendientes, refetch: refetchPendientes } = useQuery({
+    queryKey: ["ventas-pendientes-cierre", dataCierreCaja?.id],
+    queryFn: () => contarVentasPendientes({ id_cierre_caja: dataCierreCaja?.id }),
+    enabled: !!dataCierreCaja?.id,
+  });
+
+  // Mutation para limpiar ventas pendientes
+  const { isPending: isLimpiando, mutate: limpiarVentas } = useMutation({
+    mutationKey: ["limpiar-ventas-pendientes"],
+    mutationFn: () => eliminarVentasPendientesPorCierre({ id_cierre_caja: dataCierreCaja?.id }),
+    onSuccess: (resultado) => {
+      toast.success(`Se eliminaron ${resultado.eliminadas} venta(s) pendiente(s)`, { position: "top-center" });
+      refetchPendientes();
+    },
+    onError: (error) => {
+      toast.error(`Error al limpiar ventas: ${error.message}`, { position: "top-center" });
+    },
+  });
+
   const insertar = async (data) => {
-    // Usar la función atómica que valida todo en el servidor
     const p = {
       id: dataCierreCaja?.id,
       fechacierre: fechaactual,
@@ -48,7 +69,6 @@ export function PantallaConteoCaja() {
     mutationKey: ["cerrar turno caja"],
     mutationFn: insertar,
     onSuccess: (resultado) => {
-      // Mostrar información del cierre
       const mensaje = resultado?.diferencia === 0 
         ? "Caja cerrada correctamente - Cuadre perfecto ✓" 
         : `Caja cerrada - Diferencia: ${resultado?.diferencia?.toFixed(2) || 0}`;
@@ -70,7 +90,71 @@ export function PantallaConteoCaja() {
 
   const diferencia = montoEfectivo - totalEfectivoTotalCaja;
   const isExact = diferencia === 0;
-  const isDiff = montoEfectivo > 0 && diferencia !== 0;
+
+  // Si está cargando, mostrar loading
+  if (isLoadingPendientes) {
+    return (
+      <Overlay>
+        <Modal>
+          <LoadingBox>
+            <Icon icon="lucide:loader-2" className="spin" />
+            <span>Verificando estado de caja...</span>
+          </LoadingBox>
+        </Modal>
+      </Overlay>
+    );
+  }
+
+  // Si hay ventas pendientes, mostrar advertencia
+  if (ventasPendientes > 0) {
+    return (
+      <Overlay onClick={() => setStateConteoCaja(false)}>
+        <Modal onClick={(e) => e.stopPropagation()}>
+          <CloseButton onClick={() => setStateConteoCaja(false)}>
+            <Icon icon="lucide:x" />
+          </CloseButton>
+
+          <WarningIcon>
+            <Icon icon="lucide:alert-triangle" />
+          </WarningIcon>
+
+          <Title>Ventas Pendientes</Title>
+          <Subtitle>
+            Hay <strong>{ventasPendientes}</strong> venta(s) sin completar asociadas a esta caja.
+          </Subtitle>
+
+          <WarningBox>
+            <p>
+              Estas ventas fueron iniciadas pero nunca se completaron (posiblemente por 
+              cierres inesperados del navegador o sesiones anteriores).
+            </p>
+            <p>
+              Para cerrar la caja, debes eliminar estas ventas pendientes.
+            </p>
+          </WarningBox>
+
+          <ButtonGroup>
+            <CancelButton onClick={() => setStateConteoCaja(false)}>
+              Cancelar
+            </CancelButton>
+            <CleanButton onClick={() => limpiarVentas()} disabled={isLimpiando}>
+              {isLimpiando ? (
+                <>
+                  <Icon icon="lucide:loader-2" className="spin" />
+                  Limpiando...
+                </>
+              ) : (
+                <>
+                  <Icon icon="lucide:trash-2" />
+                  Eliminar Ventas Pendientes
+                </>
+              )}
+            </CleanButton>
+          </ButtonGroup>
+        </Modal>
+      </Overlay>
+    );
+  }
 
   return (
     <Overlay onClick={() => setStateConteoCaja(false)}>
@@ -158,6 +242,117 @@ export function PantallaConteoCaja() {
     </Overlay>
   );
 }
+
+const LoadingBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+  color: #666;
+  
+  svg {
+    font-size: 32px;
+  }
+  
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const WarningIcon = styled.div`
+  width: 64px;
+  height: 64px;
+  background: #fef3c7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  
+  svg {
+    font-size: 32px;
+    color: #f59e0b;
+  }
+`;
+
+const WarningBox = styled.div`
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 20px 0;
+  
+  p {
+    font-size: 13px;
+    color: #92400e;
+    margin: 0;
+    line-height: 1.5;
+    
+    &:not(:last-child) {
+      margin-bottom: 10px;
+    }
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+`;
+
+const CancelButton = styled.button`
+  flex: 1;
+  height: 48px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #666;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  
+  &:hover {
+    background: #f5f5f5;
+    border-color: #ddd;
+  }
+`;
+
+const CleanButton = styled.button`
+  flex: 1.5;
+  height: 48px;
+  border: none;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+  
+  &:hover:not(:disabled) {
+    background: #dc2626;
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+`;
 
 const Overlay = styled.div`
   position: fixed;

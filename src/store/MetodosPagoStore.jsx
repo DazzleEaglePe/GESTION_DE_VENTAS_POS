@@ -16,7 +16,7 @@ export const useMetodosPagoStore = create((set) => ({
     await InsertarMetodosPago(p, file);
   },
   eliminarMetodosPago: async (p) => {
-    await EliminarMetodosPago(p);
+    return await EliminarMetodosPago(p);
   },
   editarMetodosPago: async (p, fileold, filenew) => {
     await EditarMetodosPago(p, fileold, filenew);

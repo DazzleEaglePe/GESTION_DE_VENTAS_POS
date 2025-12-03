@@ -46,7 +46,7 @@ export const useAlmacenesStore = create((set, get) => ({
     await InsertarAlmacen(p);
   },
   eliminarAlmacen: async (p) => {
-    await EliminarAlmacen(p);
+    return await EliminarAlmacen(p);
   },
   editarAlmacen: async (p) => {
     await EditarAlmacen(p);

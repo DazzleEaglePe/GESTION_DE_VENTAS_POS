@@ -2,6 +2,7 @@ import styled from "styled-components";
 import { Link } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { usePermisosStore } from "../../store/PermisosStore";
+import { useUsuariosStore } from "../../store/UsuariosStore";
 
 // Mapeo de módulos a iconos de Iconify (lucide)
 const iconMap = {
@@ -40,6 +41,12 @@ const defaultIcon = "lucide:settings";
 
 export function ConfiguracionesTemplate() {
   const { dataPermisosConfiguracion } = usePermisosStore();
+  const { datausuarios } = useUsuariosStore();
+  
+  // Solo administradores pueden ver elementos eliminados
+  // Verificamos con varias condiciones por seguridad
+  const rolNombre = datausuarios?.roles?.nombre?.toLowerCase() || "";
+  const esAdmin = rolNombre.includes("admin") || rolNombre === "administrador";
 
   if (!dataPermisosConfiguracion || !Array.isArray(dataPermisosConfiguracion)) {
     return (
@@ -102,6 +109,22 @@ export function ConfiguracionesTemplate() {
             </Card>
           );
         })}
+        
+        {/* Card especial para Elementos Eliminados - Solo para admins */}
+        {esAdmin && (
+          <Card to="/configuracion/eliminados">
+            <IconWrapper $bgColor="#fef2f2">
+              <Icon icon="lucide:trash-2" style={{ color: "#dc2626", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Elementos Eliminados</h3>
+              <p>Recupera registros eliminados del sistema</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
       </CardsGrid>
     </Container>
   );

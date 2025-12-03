@@ -41,6 +41,6 @@ export const useCajasStore = create((set) => ({
     await EditarCaja(p);
   },
   eliminarCaja: async (p) => {
-    await EliminarCaja(p);
+    return await EliminarCaja(p);
   },
 }));

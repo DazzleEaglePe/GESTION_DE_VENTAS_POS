@@ -177,63 +177,48 @@ export function TablaMovimientosCajaLive({
     </>
   );
 }
+
 const Container = styled.div`
   position: relative;
+  padding: 16px;
+  
   .responsive-table {
     width: 100%;
-    margin-bottom: 1.5em;
     border-spacing: 0;
-    font-size: 0.9em;
-    @media (max-width: 768px) {
-      font-size: 0.8em;
-      transform: scale(0.9);
-    }
+    font-size: 13px;
 
     thead {
-      position: relative;
-      padding: 0;
-      border: 0;
-      height: auto;
-      width: auto;
-      overflow: auto;
-
       th {
-        border-bottom: 1px solid ${({ theme }) => theme.color2};
-        font-weight: 700;
-        text-align: center;
-        color: ${({ theme }) => theme.text};
+        padding: 12px 8px;
+        font-weight: 600;
+        text-align: left;
+        color: #6b7280;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #f0f0f0;
+        
         &:first-of-type {
-          text-align: center;
+          text-align: left;
         }
       }
     }
-    tbody{
-      tr{
-        display: table-row;
-        margin-bottom: 0;
-        &:nth-of-type(even) {
-          background-color: rgba(161, 161, 161, 0.1);
+    
+    tbody {
+      tr {
+        transition: background 0.15s ease;
+        
+        &:hover {
+          background-color: #f9fafb;
         }
+        
         td {
-          text-align: center;
-          padding: 0.5em;
-          border-bottom: 1px solid rgba(161, 161, 161, 0.32);
-
-          @media (max-width: 768px) {
-            padding: 0.4em;
-          }
+          padding: 12px 8px;
+          text-align: left;
+          color: #374151;
+          border-bottom: 1px solid #f5f5f5;
         }
       }
     }
-   
   }
-`;
-const Colorcontent = styled.div`
-  justify-content: center;
-  min-height: ${(props) => props.$alto};
-  width: ${(props) => props.$ancho};
-  display: flex;
-  background-color: ${(props) => props.color};
-  border-radius: 50%;
-  text-align: center;
 `;

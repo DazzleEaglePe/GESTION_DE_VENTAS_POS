@@ -9,6 +9,7 @@ import {
   EliminarVenta,
   supabase,
 } from "../index";
+import { EliminarVentasPendientesPorCierre, ContarVentasPendientes } from "../supabase/crudVenta";
 import { toast } from "sonner";
 const initialState = {
   items: [],
@@ -83,5 +84,15 @@ export const useVentasStore = create((set, get) => ({
     }
 
     return data;
+  },
+  
+  // Eliminar todas las ventas pendientes de un cierre de caja
+  eliminarVentasPendientesPorCierre: async (p) => {
+    return await EliminarVentasPendientesPorCierre(p);
+  },
+  
+  // Contar ventas pendientes de un cierre de caja
+  contarVentasPendientes: async (p) => {
+    return await ContarVentasPendientes(p);
   },
 }));

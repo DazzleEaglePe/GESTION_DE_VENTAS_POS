@@ -13,6 +13,7 @@ import { useClientesProveedoresStore } from "../../../store/ClientesProveedoresS
 import { useEmpresaStore } from "../../../store/EmpresaStore";
 import { useQuery } from "@tanstack/react-query";
 import { SelectList } from "../../ui/lists/SelectList";
+import Swal from "sweetalert2";
 
 export function RegistrarInventario({ setIsExploding }) {
   const { setStateClose } = useGlobalStore();
@@ -32,6 +33,7 @@ export function RegistrarInventario({ setIsExploding }) {
     register,
     formState: { errors },
     handleSubmit,
+    watch,
   } = useForm();
 
   // Cargar almacenes de la sucursal
@@ -78,8 +80,28 @@ export function RegistrarInventario({ setIsExploding }) {
     });
   };
 
-  const handleClose = () => {
-    setStateClose(false);
+  const handleClose = async () => {
+    const formValues = watch();
+    const hayCambios = formValues.cantidad || formValues.motivo || proveedorSelect;
+    
+    if (hayCambios) {
+      const result = await Swal.fire({
+        title: '¿Salir sin guardar?',
+        text: 'Si sales ahora, perderás la información ingresada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#111',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Seguir editando',
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        setStateClose(false);
+      }
+    } else {
+      setStateClose(false);
+    }
   };
 
   return (

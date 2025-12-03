@@ -8,6 +8,7 @@ import { BtnClose } from "../../ui/buttons/BtnClose";
 import { useGlobalStore } from "../../../store/GlobalStore";
 import { useAsignacionCajaSucursalStore } from "../../../store/AsignacionCajaSucursalStore";
 import { useEditarSerializacionMutation } from "../../../tanstack/SerializacionStack";
+import Swal from "sweetalert2";
 
 
 export const RegistrarSerializacion = () => {
@@ -28,9 +29,8 @@ export const RegistrarSerializacion = () => {
   
   const {
     register,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
-    watch,
   } = useForm({
     defaultValues: {
       cantidad_numeros: itemSelect?.cantidad_numeros,
@@ -39,11 +39,32 @@ export const RegistrarSerializacion = () => {
       sucursal_id: sucursalesItemSelectAsignadas?.id_sucursal,
     },
   });
+
+  const handleCerrarConConfirmacion = async () => {
+    if (isDirty) {
+      const result = await Swal.fire({
+        title: '¿Salir sin guardar?',
+        text: 'Si sales ahora, perderás la información ingresada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#111',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Seguir editando',
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        setStateClose(false);
+      }
+    } else {
+      setStateClose(false);
+    }
+  };
   return (
     <Container>
       <section className="sub-container">
         <div className="comprobante">
-          <BtnClose color={"#000"} funcion={() => setStateClose(false)} />
+          <BtnClose color={"#000"} funcion={handleCerrarConConfirmacion} />
           <span className="title">Comprobante</span>
           <div className="tipo"> {itemSelect?.tipo_comprobantes?.nombre} </div>
           <div className="numero">

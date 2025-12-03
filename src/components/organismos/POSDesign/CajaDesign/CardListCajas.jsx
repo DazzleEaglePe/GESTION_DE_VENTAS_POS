@@ -160,71 +160,67 @@ export function CardListCajas({
 }
 
 const Container = styled.div`
-  background: #fafafa;
-  border: 2px solid ${({ $state, $expanded }) => 
-    $expanded ? '#111' : $state ? '#fecaca' : '#e5e5e5'};
-  border-radius: 14px;
-  padding: 16px;
+  background: ${({ $expanded }) => $expanded ? '#f8f9fa' : '#fff'};
+  border: 1px solid ${({ $state, $expanded }) => 
+    $expanded ? '#111' : $state ? '#fecaca' : '#eee'};
+  border-radius: 12px;
+  padding: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 
   &:hover {
-    border-color: ${({ $state }) => $state ? '#f87171' : '#111'};
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: ${({ $state }) => $state ? '#f87171' : '#ccc'};
+    background: ${({ $state }) => $state ? '#fef2f2' : '#fafafa'};
   }
 `;
 
 const CardHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 `;
 
 const IconWrapper = styled.div`
-  width: 48px;
-  height: 48px;
-  background: ${({ $state }) => $state ? '#fef2f2' : '#111'};
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  background: ${({ $state }) => $state ? '#fef2f2' : '#f0fdf4'};
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
   svg {
-    font-size: 22px;
-    color: ${({ $state }) => $state ? '#ef4444' : '#fff'};
+    font-size: 18px;
+    color: ${({ $state }) => $state ? '#ef4444' : '#22c55e'};
   }
 `;
 
 const CardInfo = styled.div`
   flex: 1;
   text-align: left;
+  min-width: 0;
 `;
 
 const CardTitle = styled.div`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #111;
 `;
 
 const CardMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #666;
-  margin-top: 2px;
-
-  svg {
-    font-size: 14px;
-  }
+  display: none;
 `;
 
 const StatusBadge = styled.span`
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
   background: ${({ $state }) => $state ? '#fef2f2' : '#f0fdf4'};
   color: ${({ $state }) => $state ? '#dc2626' : '#16a34a'};
@@ -233,16 +229,17 @@ const StatusBadge = styled.span`
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px 12px;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 10px;
   background: #fff;
+  border: 1px solid #eee;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
 
   svg {
-    font-size: 16px;
+    font-size: 14px;
     color: #999;
   }
 
@@ -252,21 +249,21 @@ const UserInfo = styled.div`
 `;
 
 const ExpandedContent = styled.div`
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e5e5;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
 `;
 
 const InputGroup = styled.div`
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 `;
 
 const InputLabel = styled.label`
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 8px;
+  color: #666;
+  margin-bottom: 6px;
 `;
 
 const InputWrapper = styled.div`
@@ -277,19 +274,19 @@ const InputWrapper = styled.div`
 
 const InputIcon = styled.span`
   position: absolute;
-  left: 14px;
-  font-size: 14px;
+  left: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: #666;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 12px 12px 12px 40px;
-  font-size: 16px;
+  padding: 10px 10px 10px 36px;
+  font-size: 14px;
   font-weight: 500;
-  border: 2px solid #e5e5e5;
-  border-radius: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
   background: #fff;
   color: #111;
   transition: all 0.15s;
@@ -306,20 +303,20 @@ const Input = styled.input`
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: 10px;
+  gap: 8px;
 `;
 
 const ActionButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
-  font-size: 14px;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
   flex: 1;
   border: none;
 
@@ -337,8 +334,8 @@ const ActionButton = styled.button`
         return `
           background: #fff;
           color: #111;
-          border: 2px solid #e5e5e5;
-          margin-top: 12px;
+          border: 1px solid #ddd;
+          margin-top: 10px;
           &:hover:not(:disabled) {
             border-color: #111;
           }
@@ -372,6 +369,6 @@ const ActionButton = styled.button`
   }
 
   svg {
-    font-size: 18px;
+    font-size: 16px;
   }
 `;

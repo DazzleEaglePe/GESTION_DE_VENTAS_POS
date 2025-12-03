@@ -29,7 +29,7 @@ export const useMostrarStockXAlmacenesYProductoQuery = () => {
         id_producto: productosItemSelect?.id,
         id_almacen: almacenSelectItem?.id,
       }),
-    enabled: !!almacenSelectItem,
+    enabled: !!almacenSelectItem && !!productosItemSelect?.id,
     refetchOnWindowFocus: false,
   });
 };

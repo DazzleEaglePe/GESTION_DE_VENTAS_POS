@@ -187,64 +187,108 @@ export function HeaderPos() {
 
   return (
     <Header>
-      <TopBar>
-        <span><strong>SUCURSAL:</strong> {dataCierreCaja.caja?.sucursales?.nombre}</span>
-        <Divider />
-        <span><strong>CAJA:</strong> {dataCierreCaja.caja?.descripcion}</span>
-      </TopBar>
+      {/* Barra de contexto - Sucursal y Caja */}
+      <ContextBar>
+        <ContextItem>
+          <ContextIcon className="sucursal">
+            <Icon icon="lucide:building-2" width="16" />
+          </ContextIcon>
+          <ContextInfo>
+            <ContextLabel>Sucursal</ContextLabel>
+            <ContextValue>{dataCierreCaja.caja?.sucursales?.nombre}</ContextValue>
+          </ContextInfo>
+        </ContextItem>
+        
+        <ContextDivider />
+        
+        <ContextItem>
+          <ContextIcon className="caja">
+            <Icon icon="lucide:monitor" width="16" />
+          </ContextIcon>
+          <ContextInfo>
+            <ContextLabel>Caja</ContextLabel>
+            <ContextValue>{dataCierreCaja.caja?.descripcion}</ContextValue>
+          </ContextInfo>
+        </ContextItem>
+        
+        <ContextDivider />
+        
+        <ContextItem>
+          <ContextIcon className="almacen">
+            <Icon icon="lucide:warehouse" width="16" />
+          </ContextIcon>
+          <ContextInfo>
+            <ContextLabel>Almacén</ContextLabel>
+            <ContextValue>
+              {almacenSelectItem?.nombre || dataAlmacenesXsucursal?.[0]?.nombre || "Sin asignar"}
+            </ContextValue>
+          </ContextInfo>
+        </ContextItem>
+      </ContextBar>
 
       <MainHeader>
-        <UserInfo>
-          <UserName>{datausuarios?.nombres}</UserName>
-          <UserRole>
-            <Icon icon="lucide:shield-check" />
-            {datausuarios?.roles?.nombre}
-          </UserRole>
-        </UserInfo>
+        <LeftSection>
+          <UserInfo>
+            <UserAvatar>
+              <Icon icon="lucide:user" width="18" />
+            </UserAvatar>
+            <UserDetails>
+              <UserName>{datausuarios?.nombres}</UserName>
+              <UserRole>
+                <Icon icon="lucide:shield-check" width="12" />
+                {datausuarios?.roles?.nombre}
+              </UserRole>
+            </UserDetails>
+          </UserInfo>
+        </LeftSection>
 
-        <ClockWrapper>
-          <Reloj />
-        </ClockWrapper>
+        <CenterSection>
+          <SearchSection>
+            <QuantityInput>
+              <input
+                type="number"
+                min="1"
+                value={cantidadInput}
+                onChange={ValidarCantidad}
+                placeholder="1"
+              />
+            </QuantityInput>
+
+            <SearchWrapper>
+              <SearchIcon>
+                <Icon icon="lucide:search" />
+              </SearchIcon>
+              <SearchInput
+                value={buscador}
+                ref={buscadorRef}
+                onChange={buscar}
+                type="search"
+                placeholder="Buscar producto por nombre o código..."
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown" && stateListaproductos) {
+                    e.preventDefault();
+                    document.querySelector("[tabindex='0'").focus();
+                  }
+                }}
+              />
+              <ListaDesplegable
+                funcioncrud={mutationInsertarVentas}
+                top="52px"
+                funcion={selectProductos}
+                setState={() => setStateListaproductos(!stateListaproductos)}
+                data={dataProductos}
+                state={stateListaproductos}
+              />
+            </SearchWrapper>
+          </SearchSection>
+        </CenterSection>
+
+        <RightSection>
+          <ClockWrapper>
+            <Reloj />
+          </ClockWrapper>
+        </RightSection>
       </MainHeader>
-
-      <SearchSection>
-        <QuantityInput>
-          <input
-            type="number"
-            min="1"
-            value={cantidadInput}
-            onChange={ValidarCantidad}
-            placeholder="1"
-          />
-        </QuantityInput>
-
-        <SearchWrapper>
-          <SearchIcon>
-            <Icon icon="lucide:search" />
-          </SearchIcon>
-          <SearchInput
-            value={buscador}
-            ref={buscadorRef}
-            onChange={buscar}
-            type="search"
-            placeholder="buscar..."
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown" && stateListaproductos) {
-                e.preventDefault();
-                document.querySelector("[tabindex='0'").focus();
-              }
-            }}
-          />
-          <ListaDesplegable
-            funcioncrud={mutationInsertarVentas}
-            top="52px"
-            funcion={selectProductos}
-            setState={() => setStateListaproductos(!stateListaproductos)}
-            data={dataProductos}
-            state={stateListaproductos}
-          />
-        </SearchWrapper>
-      </SearchSection>
     </Header>
   );
 }
@@ -253,53 +297,142 @@ const Header = styled.div`
   grid-area: header;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+`;
 
-  @media ${Device.desktop} {
-    border-bottom: 1px solid #e5e5e5;
-    padding-bottom: 16px;
+/* Context Bar - Sucursal, Caja, Almacén */
+const ContextBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  overflow-x: auto;
+  
+  &::-webkit-scrollbar {
+    display: none;
   }
 `;
 
-const TopBar = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 44px;
+const ContextItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+`;
+
+const ContextIcon = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  background: #111;
-  color: #fff;
-  font-size: 13px;
-
-  strong {
-    color: #999;
+  
+  &.sucursal {
+    background: #eff6ff;
+    color: #3b82f6;
+  }
+  
+  &.caja {
+    background: #f0fdf4;
+    color: #22c55e;
+  }
+  
+  &.almacen {
+    background: #fef3c7;
+    color: #d97706;
   }
 `;
 
-const Divider = styled.span`
-  width: 1px;
-  height: 16px;
-  background: #333;
+const ContextInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 `;
 
+const ContextLabel = styled.span`
+  font-size: 10px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+`;
+
+const ContextValue = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+`;
+
+const ContextDivider = styled.div`
+  width: 1px;
+  height: 28px;
+  background: #eee;
+  flex-shrink: 0;
+`;
+
+/* Main Header */
 const MainHeader = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 16px;
+  
+  @media ${Device.desktop} {
+    gap: 24px;
+  }
+`;
+
+const LeftSection = styled.div`
+  flex-shrink: 0;
+`;
+
+const CenterSection = styled.div`
+  flex: 1;
+  display: flex;
+  justify-content: center;
+`;
+
+const RightSection = styled.div`
+  flex-shrink: 0;
+  display: none;
+  
+  @media ${Device.desktop} {
+    display: block;
+  }
 `;
 
 const UserInfo = styled.div`
   display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const UserAvatar = styled.div`
+  width: 40px;
+  height: 40px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+`;
+
+const UserDetails = styled.div`
+  display: none;
   flex-direction: column;
   gap: 2px;
+  
+  @media ${Device.tablet} {
+    display: flex;
+  }
 `;
 
 const UserName = styled.span`
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #111;
 `;
@@ -307,13 +440,12 @@ const UserName = styled.span`
 const UserRole = styled.span`
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #666;
+  gap: 4px;
+  font-size: 11px;
+  color: #888;
 
   svg {
-    font-size: 14px;
-    color: #16a34a;
+    color: #22c55e;
   }
 `;
 
@@ -323,29 +455,30 @@ const ClockWrapper = styled.div`
 
 const SearchSection = styled.div`
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
+  width: 100%;
+  max-width: 500px;
 `;
 
 const QuantityInput = styled.div`
-  width: 70px;
+  width: 60px;
   flex-shrink: 0;
 
   input {
     width: 100%;
-    height: 48px;
-    border: 2px solid #e5e5e5;
-    border-radius: 12px;
-    font-size: 16px;
+    height: 44px;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    font-size: 15px;
     font-weight: 600;
     text-align: center;
-    background: #fafafa;
+    background: #fff;
     outline: none;
     transition: all 0.15s;
 
     &:focus {
       border-color: #111;
-      background: #fff;
     }
   }
 `;
@@ -353,16 +486,11 @@ const QuantityInput = styled.div`
 const SearchWrapper = styled.div`
   flex: 1;
   position: relative;
-  max-width: 500px;
-
-  @media ${Device.desktop} {
-    max-width: 400px;
-  }
 `;
 
 const SearchIcon = styled.div`
   position: absolute;
-  left: 16px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: #999;
@@ -372,21 +500,20 @@ const SearchIcon = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  height: 48px;
-  border: 2px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 0 16px 0 46px;
-  font-size: 15px;
-  background: #fafafa;
+  height: 44px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 0 14px 0 42px;
+  font-size: 14px;
+  background: #fff;
   outline: none;
   transition: all 0.15s;
 
   &:focus {
     border-color: #111;
-    background: #fff;
   }
 
   &::placeholder {
-    color: #aaa;
+    color: #bbb;
   }
 `;

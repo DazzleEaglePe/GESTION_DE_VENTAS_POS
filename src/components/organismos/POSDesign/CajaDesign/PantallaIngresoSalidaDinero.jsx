@@ -10,6 +10,7 @@ import { useMetodosPagoStore } from "../../../../store/MetodosPagoStore";
 import { useUsuariosStore } from "../../../../store/UsuariosStore";
 import { useFormattedDate } from "../../../../hooks/useFormattedDate";
 import { Icon } from "@iconify/react";
+import Swal from "sweetalert2";
 
 export function PantallaIngresoSalidaDinero() {
   const fechaActual = useFormattedDate();
@@ -66,12 +67,28 @@ export function PantallaIngresoSalidaDinero() {
     }
   }, [dataMetodosPago]);
 
+  // Confirmar cierre con datos sin guardar
+  const handleCerrarConConfirmacion = async () => {
+    const result = await Swal.fire({
+      title: '¿Salir sin guardar?',
+      text: 'Si sales ahora, perderás los datos ingresados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#111',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Seguir editando',
+      reverseButtons: true,
+    });
+    if (result.isConfirmed) setStateIngresoSalida(false);
+  };
+
   return (
-    <Overlay onClick={() => setStateIngresoSalida(false)}>
+    <Overlay onClick={handleCerrarConConfirmacion}>
       <Container onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <Header>
-          <CloseButton onClick={() => setStateIngresoSalida(false)}>
+          <CloseButton onClick={handleCerrarConConfirmacion}>
             <Icon icon="lucide:x" />
           </CloseButton>
           <HeaderIcon $isIngreso={isIngreso}>

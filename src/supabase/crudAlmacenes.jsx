@@ -35,11 +35,42 @@ export async function MostrarAlmacenesXSucursal(p) {
   const { data } = await supabase
     .from(tabla)
     .select()
-    .eq("id_sucursal", p.id_sucursal);
+    .eq("id_sucursal", p.id_sucursal)
+    .eq("activo", true);
   return data;
 }
+// Soft Delete para almacenes
 export async function EliminarAlmacen(p) {
-  const { error } = await supabase.from(tabla).delete().eq("id", p.id);
+  const { data, error } = await supabase.rpc("soft_delete_almacen", {
+    p_id: p.id,
+    p_usuario_id: p.id_usuario || null,
+  });
+  
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  // La función retorna JSONB con success, error/message
+  if (!data.success) {
+    return {
+      exito: false,
+      mensaje: data.error,
+    };
+  }
+  
+  return {
+    exito: true,
+    mensaje: data.message,
+  };
+}
+
+// Restaurar almacén eliminado
+export async function RestaurarAlmacen(p) {
+  const { error } = await supabase.rpc("restaurar_registro", {
+    p_tabla: tabla,
+    p_id: p.id,
+  });
+  
   if (error) {
     throw new Error(error.message);
   }

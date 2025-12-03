@@ -222,7 +222,15 @@ const TicketVenta = async (output, data) => {
           [
             { text: "DOC.ID: ", style: "tClientLabel" },
             {
-              text: data.dataCliente?.identificador_fiscal || "-",
+              // Mostrar DNI o RUC según cuál tenga valor válido (ignorar "-", vacíos y "NA-xxx")
+              text: (() => {
+                const dni = data.dataCliente?.identificador_nacional;
+                const ruc = data.dataCliente?.identificador_fiscal;
+                const esValido = (v) => v && v !== "-" && !v.startsWith("NA-");
+                if (esValido(dni)) return dni;
+                if (esValido(ruc)) return ruc;
+                return "-";
+              })(),
               style: "tClientValue",
               colSpan: 3,
             },

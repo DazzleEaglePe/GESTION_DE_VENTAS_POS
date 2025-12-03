@@ -64,6 +64,7 @@ export async function MostrarCategorias(p) {
     .from(tabla)
     .select()
     .eq("id_empresa", p.id_empresa)
+    .eq("activo", true)
     .order("id", { ascending: false });
   return data;
 }
@@ -72,6 +73,7 @@ export async function BuscarCategorias(p) {
     .from(tabla)
     .select()
     .eq("id_empresa", p.id_empresa)
+    .eq("activo", true)
     .ilike("nombre", "%" + p.descripcion + "%");
 
   return data;
@@ -105,27 +107,41 @@ export async function EliminarCategoriaFisico(p) {
   }
 }
 
-// Función principal de eliminación con validación integrada
+// Soft Delete para categorías
 export async function EliminarCategorias(p) {
-  // 1. Validar antes de eliminar
-  const validacion = await ValidarEliminarCategoria(p);
+  const { data, error } = await supabase.rpc("soft_delete_categoria", {
+    p_id: p.id,
+    p_usuario_id: p.id_usuario || null,
+  });
   
-  // 2. Si no puede eliminarse, retornar la información
-  if (!validacion.puede_eliminar) {
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  // La función retorna JSONB con success, error/message
+  if (!data.success) {
     return {
       exito: false,
-      validacion: validacion,
-      mensaje: validacion.mensaje,
+      mensaje: data.error,
     };
   }
   
-  // 3. Si puede eliminarse, proceder
-  await EliminarCategoriaFisico(p);
-  
   return {
     exito: true,
-    mensaje: "Categoría eliminada correctamente",
+    mensaje: data.message,
   };
+}
+
+// Restaurar categoría eliminada
+export async function RestaurarCategoria(p) {
+  const { error } = await supabase.rpc("restaurar_registro", {
+    p_tabla: tabla,
+    p_id: p.id,
+  });
+  
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 export async function EditarCategorias(p, fileold, filenew) {
   const { error } = await supabase.rpc("editarcategorias", p);

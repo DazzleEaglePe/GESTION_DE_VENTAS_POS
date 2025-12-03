@@ -17,6 +17,7 @@ import { SelectList } from "../../ui/lists/SelectList";
 import { BarLoader } from "react-spinners";
 import { PermisosUser } from "../UsuariosDesign/PermisosUser";
 import { useRolesStore } from "../../../store/RolesStore";
+import Swal from "sweetalert2";
 export function RegistrarUsuarios({ accion, dataSelect, onClose }) {
   const queryClient = useQueryClient();
   const {
@@ -46,7 +47,7 @@ export function RegistrarUsuarios({ accion, dataSelect, onClose }) {
   });
   const {
     register,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
   } = useForm({
     defaultValues: {
@@ -57,6 +58,27 @@ export function RegistrarUsuarios({ accion, dataSelect, onClose }) {
       pass: 123456,
     },
   });
+
+  const handleCerrarConConfirmacion = async () => {
+    if (isDirty) {
+      const result = await Swal.fire({
+        title: '¿Salir sin guardar?',
+        text: 'Si sales ahora, perderás la información ingresada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#111',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Seguir editando',
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
   const insertar = async (data) => {
     if (accion === "Editar") {
       const p = {
@@ -118,7 +140,7 @@ export function RegistrarUsuarios({ accion, dataSelect, onClose }) {
             <Title>
               {accion === "Editar" ? "Editar usuario" : "Registrar usuario"}
             </Title>
-            <BtnClose funcion={onClose} />
+            <BtnClose funcion={handleCerrarConConfirmacion} />
           </Header>
           <section className="main">
             <section className="area1">

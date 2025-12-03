@@ -1,11 +1,20 @@
 import { supabase } from "../supabase/supabase.config";
 const tabla = "permisos";
 export async function MostrarPermisos(p) {
-  const { data } = await supabase
+  if (!p?.id_usuario) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
     .from(tabla)
     .select(`*, modulos(*)`)
     .eq("id_usuario", p.id_usuario);
-  return data;
+  
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return data || [];
 }
 export async function MostrarPermisosConfiguracion(p) {
   if (!p?.id_usuario) {
@@ -36,6 +45,10 @@ export async function InsertarPermisos(p) {
 }
 
 export async function EliminarPermisos(p) {
+  if (!p?.id_usuario) {
+    return;
+  }
+  
   const { error } = await supabase
     .from(tabla)
     .delete()
@@ -46,9 +59,18 @@ export async function EliminarPermisos(p) {
 }
 
 export async function MostrarPermisosGlobales(p) {
-  const { data } = await supabase
+  if (!p?.id_usuario) {
+    return [];
+  }
+  
+  const { data, error } = await supabase
     .from(tabla)
     .select(`*, modulos(*)`)
     .eq("id_usuario", p.id_usuario);
-  return data;
+  
+  if (error) {
+    throw new Error(error.message);
+  }
+  
+  return data || [];
 }

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 import { useProductosStore } from "../../../store/ProductosStore";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
@@ -146,11 +147,31 @@ export function RegistrarProductos({
     }
   }, [dataAlmacenes, setAlmacenSelectItem]);
 
+  // Función para confirmar cierre con cambios sin guardar
+  const handleCerrarConConfirmacion = async () => {
+    const result = await Swal.fire({
+      title: '¿Salir sin guardar?',
+      text: 'Si sales ahora, perderás la información ingresada.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#111',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Seguir editando',
+      reverseButtons: true,
+    });
+    
+    if (result.isConfirmed) {
+      refetchs();
+      onClose();
+    }
+  };
+
   // Early return after all hooks
   if (!state) return null;
 
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={handleCerrarConConfirmacion}>
       <Modal onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <Header>
@@ -158,7 +179,7 @@ export function RegistrarProductos({
             <Icon icon="lucide:package-plus" />
             {accion === "Editar" ? "Editar producto" : "Nuevo producto"}
           </HeaderTitle>
-          <CloseBtn onClick={() => { refetchs(); onClose(); }}>
+          <CloseBtn onClick={handleCerrarConConfirmacion}>
             <Icon icon="lucide:x" />
           </CloseBtn>
         </Header>
