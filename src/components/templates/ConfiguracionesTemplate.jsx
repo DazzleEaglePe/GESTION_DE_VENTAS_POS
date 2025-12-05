@@ -125,6 +125,120 @@ export function ConfiguracionesTemplate() {
             </ArrowIcon>
           </Card>
         )}
+        
+        {/* Card especial para Auditoría - Solo para admins */}
+        {esAdmin && (
+          <Card to="/configuracion/auditoria">
+            <IconWrapper $bgColor="#eef2ff">
+              <Icon icon="lucide:activity" style={{ color: "#6366f1", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Registro de Actividad</h3>
+              <p>Historial de operaciones del sistema</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
+        
+        {/* Card especial para Historial de Precios - Solo para admins */}
+        {esAdmin && (
+          <Card to="/configuracion/historial-precios">
+            <IconWrapper $bgColor="#fef3c7">
+              <Icon icon="lucide:history" style={{ color: "#d97706", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Historial de Precios</h3>
+              <p>Seguimiento de cambios de precios</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
+        
+        {/* Card especial para Transferencias entre Almacenes - Solo para admins */}
+        {esAdmin && (
+          <Card to="/configuracion/transferencias">
+            <IconWrapper $bgColor="#f3e8ff">
+              <Icon icon="lucide:arrow-left-right" style={{ color: "#8b5cf6", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Transferencias</h3>
+              <p>Movimiento de productos entre almacenes</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
+        
+        {/* ===== FASE 3: MEJORAS / DIFERENCIACIÓN ===== */}
+        
+        {/* Card especial para Variantes de Productos */}
+        {esAdmin && (
+          <Card to="/configuracion/variantes">
+            <IconWrapper $bgColor="#eef2ff">
+              <Icon icon="lucide:layers" style={{ color: "#6366f1", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Variantes de Productos</h3>
+              <p>Atributos como talla, color, material</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
+        
+        {/* Card especial para Multi-Precios */}
+        {esAdmin && (
+          <Card to="/configuracion/multiprecios">
+            <IconWrapper $bgColor="#ecfdf5">
+              <Icon icon="lucide:badge-dollar-sign" style={{ color: "#10b981", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Multi-Precios</h3>
+              <p>Precios por volumen y tipo de cliente</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
+        
+        {/* Card especial para Productos Compuestos (Kits) */}
+        {esAdmin && (
+          <Card to="/configuracion/productos-compuestos">
+            <IconWrapper $bgColor="#fffbeb">
+              <Icon icon="lucide:boxes" style={{ color: "#f59e0b", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Productos Compuestos</h3>
+              <p>Kits, combos y paquetes</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
+        
+        {/* Card especial para Control de Seriales */}
+        {esAdmin && (
+          <Card to="/configuracion/seriales">
+            <IconWrapper $bgColor="#faf5ff">
+              <Icon icon="lucide:barcode" style={{ color: "#a855f7", fontSize: 28 }} />
+            </IconWrapper>
+            <CardContent>
+              <h3>Control de Seriales</h3>
+              <p>Seguimiento de números de serie</p>
+            </CardContent>
+            <ArrowIcon>
+              <Icon icon="lucide:chevron-right" />
+            </ArrowIcon>
+          </Card>
+        )}
       </CardsGrid>
     </Container>
   );

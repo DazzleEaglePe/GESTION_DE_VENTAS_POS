@@ -26,6 +26,55 @@ export async function InsertarDetalleVentas(p) {
   }
 }
 
+/**
+ * Insertar detalle de venta con soporte para variantes, seriales y multiprecios
+ * Usa la función RPC insertar_detalle_venta_v2 que valida stock y reserva seriales
+ */
+export async function InsertarDetalleVentasConExtras(p) {
+  // Preparar parámetros para la función v2
+  const params = {
+    _id_venta: p._id_venta,
+    _cantidad: p._cantidad,
+    _precio_venta: p._precio_venta,
+    _descripcion: p._descripcion,
+    _id_producto: p._id_producto,
+    _precio_compra: p._precio_compra,
+    _id_sucursal: p._id_sucursal,
+    _id_almacen: p._id_almacen,
+    _id_variante: p._id_variante || null,
+    _id_serial: p._id_serial || null,
+    _multiprecio_aplicado: p._multiprecio_aplicado || false,
+    _nivel_multiprecio: p._nivel_multiprecio || null,
+    _descuento_multiprecio: p._descuento_multiprecio || 0
+  };
+
+  const { data, error } = await supabase.rpc("insertar_detalle_venta_v2", params);
+  
+  if (error) {
+    // Manejar errores específicos
+    if (error.message.includes("requiere seleccionar una variante")) {
+      throw new Error("Este producto requiere que selecciones una variante");
+    }
+    if (error.message.includes("requiere seleccionar un número de serie")) {
+      throw new Error("Este producto requiere que selecciones un número de serie");
+    }
+    if (error.message.includes("serial seleccionado no está disponible")) {
+      throw new Error("El número de serie seleccionado ya no está disponible");
+    }
+    if (error.message.includes("Stock insuficiente")) {
+      throw new Error(error.message);
+    }
+    if (error.message.includes("VENTA_NO_EXISTE")) {
+      const err = new Error("La venta no existe");
+      err.code = "VENTA_NO_EXISTE";
+      throw err;
+    }
+    throw new Error(error.message);
+  }
+  
+  return data;
+}
+
 // Función auxiliar para verificar stock antes de agregar al carrito
 export async function VerificarStockDisponible(p) {
   const { data, error } = await supabase.rpc("verificar_stock_disponible", {

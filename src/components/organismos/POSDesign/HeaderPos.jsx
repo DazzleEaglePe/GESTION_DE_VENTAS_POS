@@ -7,7 +7,6 @@ import {
   useAlmacenesStore,
   useDetalleVentasStore,
 } from "../../../index";
-import { Device } from "../../../styles/breakpoints";
 import { Icon } from "@iconify/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -16,15 +15,24 @@ import { useCierreCajaStore } from "../../../store/CierreCajaStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useStockStore } from "../../../store/StockStore";
-import { useEliminarVentasIncompletasMutate, useMostrarVentaPendienteQuery } from "../../../tanstack/VentasStack";
+import { useMostrarVentaPendienteQuery } from "../../../tanstack/VentasStack";
 import { Reloj } from "../Reloj";
 import { ListaDesplegable } from "../ListaDesplegable";
+import { ModalProductoEspecial } from "./ModalProductoEspecial";
+import { 
+  VerificarCaracteristicasProducto,
+  ObtenerPrecioSegunCantidad,
+  ReservarSerialParaVenta
+} from "../../../utils/POSHelpers";
+import { Device } from "../../../styles/breakpoints";
 
 export function HeaderPos() {
-  const [stateLectora, setStateLectora] = useState(true);
   const [cantidadInput, setCantidadInput] = useState(1);
-  const [stateTeclado, setStateTeclado] = useState(false);
   const [stateListaproductos, setStateListaproductos] = useState(false);
+  // Estados para modal de productos especiales
+  const [showModalEspecial, setShowModalEspecial] = useState(false);
+  const [productoEspecialPendiente, setProductoEspecialPendiente] = useState(null);
+  
   const { setBuscador, dataProductos, selectProductos, buscador } =
     useProductosStore();
   
@@ -35,7 +43,7 @@ export function HeaderPos() {
 
   const { dataempresa } = useEmpresaStore();
   const { dataCierreCaja } = useCierreCajaStore();
-  const { almacenSelectItem, dataAlmacenesXsucursal, setAlmacenSelectItem } =
+  const { almacenSelectItem, dataAlmacenesXsucursal } =
     useAlmacenesStore();
   const { insertarDetalleVentas } = useDetalleVentasStore();
   const queryClient = useQueryClient();
@@ -56,6 +64,160 @@ export function HeaderPos() {
       setStateListaproductos(false);
     } else {
       setStateListaproductos(true);
+    }
+  }
+
+  // Función para verificar si producto tiene características especiales
+  async function verificarProductoEspecial(producto) {
+    try {
+      const caracteristicas = await VerificarCaracteristicasProducto(producto.id);
+      return caracteristicas.tieneVariantes || 
+             caracteristicas.tieneMultiprecios || 
+             caracteristicas.tieneSeriales || 
+             caracteristicas.esCompuesto;
+    } catch (error) {
+      console.error("Error verificando características:", error);
+      return false;
+    }
+  }
+
+  // Función para manejar la selección de producto
+  async function manejarSeleccionProducto(producto) {
+    selectProductos(producto);
+    
+    // Verificar si tiene características especiales
+    const esEspecial = await verificarProductoEspecial(producto);
+    
+    if (esEspecial) {
+      // Mostrar modal para productos especiales
+      setProductoEspecialPendiente(producto);
+      setShowModalEspecial(true);
+      setStateListaproductos(false);
+      setBuscador("");
+    } else {
+      // Producto normal, aplicar multiprecio si existe
+      await aplicarMultiprecioYAgregar();
+    }
+  }
+
+  // Función para aplicar multiprecio y agregar al carrito
+  async function aplicarMultiprecioYAgregar() {
+    const productosItemSelect = useProductosStore.getState().productosItemSelect;
+    
+    // Intentar obtener precio por cantidad (multiprecio)
+    try {
+      const precioInfo = await ObtenerPrecioSegunCantidad(productosItemSelect.id, cantidadInput);
+      if (precioInfo?.es_multiprecio) {
+        // Actualizar el precio en el store temporalmente
+        const productoConMultiprecio = {
+          ...productosItemSelect,
+          precio_venta: precioInfo.precio,
+          _multiprecio_aplicado: true,
+          _nivel_precio: precioInfo.nombre_nivel,
+          _descuento_multiprecio: precioInfo.descuento
+        };
+        selectProductos(productoConMultiprecio);
+      }
+    } catch (error) {
+      // Si falla, usar precio normal
+      console.log("Usando precio normal:", error.message);
+    }
+    
+    // Ahora llamar a la función de inserción
+    await insertarventas();
+  }
+
+  // Callback cuando se confirma desde el modal de producto especial
+  async function handleConfirmarProductoEspecial(datosProducto) {
+    const { producto, cantidad, precio, variante, serial, infoMultiprecio } = datosProducto;
+    
+    // Actualizar cantidad
+    setCantidadInput(cantidad);
+    
+    // Preparar producto con datos especiales
+    const productoFinal = {
+      ...producto,
+      precio_venta: precio,
+      _variante: variante,
+      _serial: serial,
+      _multiprecio_aplicado: infoMultiprecio?.es_multiprecio || false,
+      _nivel_precio: infoMultiprecio?.nombre_nivel,
+      _descuento_multiprecio: infoMultiprecio?.descuento
+    };
+    
+    selectProductos(productoFinal);
+    
+    // Cerrar modal
+    setShowModalEspecial(false);
+    setProductoEspecialPendiente(null);
+    
+    // Insertar la venta
+    await insertarventasConDatosEspeciales(cantidad, precio, variante, serial);
+    
+    setBuscador("");
+    buscadorRef.current.focus();
+    setCantidadInput(1);
+  }
+
+  // Insertar venta con datos especiales (variante, serial, multiprecio)
+  async function insertarventasConDatosEspeciales(cantidad, precio, variante, serial) {
+    let idVentaActual = idventa;
+    
+    if (idVentaActual === 0) {
+      const pventas = {
+        fecha: fechaactual,
+        id_usuario: datausuarios?.id,
+        id_sucursal: dataCierreCaja?.caja?.id_sucursal,
+        id_empresa: dataempresa?.id,
+        id_cierre_caja: dataCierreCaja?.id,
+      };
+
+      const result = await insertarVentas(pventas);
+      if (result?.id > 0) {
+        idVentaActual = result.id;
+      } else {
+        return;
+      }
+    }
+    
+    await insertarDVentasEspecial(idVentaActual, cantidad, precio, variante, serial);
+    queryClient.invalidateQueries(["mostrar detalle venta"]);
+  }
+
+  // Insertar detalle con datos especiales
+  async function insertarDVentasEspecial(idVentaParam, cantidad, precio, variante, serial) {
+    const productosItemSelect = useProductosStore.getState().productosItemSelect;
+    
+    const almacenActual = almacenSelectItem?.id || almacenSelectItem?.id_almacen || dataAlmacenesXsucursal?.[0]?.id;
+    
+    if (!almacenActual) {
+      toast.error("No hay almacén seleccionado. Por favor seleccione un almacén.");
+      return;
+    }
+    
+    const pDetalleVentas = {
+      _id_venta: idVentaParam,
+      _cantidad: parseFloat(cantidad) || 1,
+      _precio_venta: precio || productosItemSelect.precio_venta,
+      _descripcion: productosItemSelect.nombre,
+      _id_producto: productosItemSelect.id,
+      _precio_compra: productosItemSelect.precio_compra,
+      _id_sucursal: dataCierreCaja?.caja?.id_sucursal,
+      _id_almacen: almacenActual,
+      // Datos especiales
+      _id_variante: variante?.id || null,
+      _id_serial: serial?.id || null,
+    };
+    
+    await insertarDetalleVentas(pDetalleVentas);
+    
+    // Si tiene serial, marcarlo como vendido
+    if (serial?.id) {
+      try {
+        await ReservarSerialParaVenta(serial.id, idVentaParam);
+      } catch (error) {
+        console.error("Error reservando serial:", error);
+      }
     }
   }
 
@@ -107,7 +269,7 @@ export function HeaderPos() {
   }
   const { mutate: mutationInsertarVentas } = useMutation({
     mutationKey: ["insertar ventas"],
-    mutationFn: insertarventas,
+    mutationFn: aplicarMultiprecioYAgregar,
     onError: (error) => {
       toast.error(`Error: ${error.message}`);
       
@@ -135,12 +297,8 @@ export function HeaderPos() {
   // Recuperar venta pendiente al cargar el POS
   const { data: ventaPendiente, isLoading: isLoadingVentaPendiente } = useMostrarVentaPendienteQuery();
   
-  // Mutación opcional para eliminar ventas incompletas (ya no se usa automáticamente)
-  const { mutate: eliminarVentasIncompletas } = useEliminarVentasIncompletasMutate();
-  
   useEffect(() => {
     buscadorRef.current.focus();
-    // Ya no eliminamos automáticamente, ahora recuperamos la venta pendiente
   }, []);
 
   // Efecto para notificar cuando se recupera una venta pendiente
@@ -166,9 +324,8 @@ export function HeaderPos() {
           (p) => p.codigo_barras === texto
         );
         if (productoEncontrado) {
-          selectProductos(productoEncontrado);
-          mutationInsertarVentas();
-          setBuscador("");
+          // Usar la nueva función que maneja productos especiales
+          manejarSeleccionProducto(productoEncontrado);
         } else {
           toast.error("Producto no encontrado");
           setBuscador("");
@@ -272,9 +429,8 @@ export function HeaderPos() {
                 }}
               />
               <ListaDesplegable
-                funcioncrud={mutationInsertarVentas}
                 top="52px"
-                funcion={selectProductos}
+                funcion={manejarSeleccionProducto}
                 setState={() => setStateListaproductos(!stateListaproductos)}
                 data={dataProductos}
                 state={stateListaproductos}
@@ -289,6 +445,21 @@ export function HeaderPos() {
           </ClockWrapper>
         </RightSection>
       </MainHeader>
+
+      {/* Modal para productos especiales (variantes, seriales, multiprecios, kits) */}
+      {showModalEspecial && productoEspecialPendiente && (
+        <ModalProductoEspecial
+          producto={productoEspecialPendiente}
+          idAlmacen={almacenSelectItem?.id || almacenSelectItem?.id_almacen || dataAlmacenesXsucursal?.[0]?.id}
+          cantidadInicial={cantidadInput}
+          onConfirmar={handleConfirmarProductoEspecial}
+          onCancelar={() => {
+            setShowModalEspecial(false);
+            setProductoEspecialPendiente(null);
+            buscadorRef.current.focus();
+          }}
+        />
+      )}
     </Header>
   );
 }
