@@ -256,6 +256,13 @@ export function HeaderPos() {
       manejarErrorStock(error);
       return;
     }
+    // Insertar la venta con manejo de errores
+    try {
+      await insertarventasConDatosEspeciales(cantidad, precio, variante, serial);
+    } catch (error) {
+      manejarErrorStock(error);
+      return;
+    }
     
     setBuscador("");
     buscadorRef.current.focus();
@@ -377,6 +384,7 @@ export function HeaderPos() {
     mutationKey: ["insertar ventas"],
     mutationFn: aplicarMultiprecioYAgregar,
     onError: (error) => {
+      manejarErrorStock(error);
       manejarErrorStock(error);
       
       queryClient.invalidateQueries(["mostrar Stock XAlmacenes YProducto"]);
@@ -529,6 +537,10 @@ export function HeaderPos() {
                     setStateListaproductos(false);
                     setBuscador("");
                   }
+                  if (e.key === "Escape") {
+                    setStateListaproductos(false);
+                    setBuscador("");
+                  }
                 }}
               />
               {buscador && (
@@ -611,7 +623,111 @@ export function HeaderPos() {
                   </NoResultsMessage>
                 </SearchResultsDropdown>
               )}
+              {buscador && (
+                <ClearSearchButton onClick={() => { setBuscador(""); setStateListaproductos(false); }}>
+                  <Icon icon="lucide:x" />
+                </ClearSearchButton>
+              )}
+              
+              {/* Lista de resultados mejorada */}
+              {stateListaproductos && dataProductos?.length > 0 && (
+                <SearchResultsDropdown>
+                  <ResultsHeader>
+                    <ResultsCount>{dataProductos.length} producto(s) encontrado(s)</ResultsCount>
+                    <CloseResults onClick={() => setStateListaproductos(false)}>
+                      <Icon icon="lucide:x" />
+                    </CloseResults>
+                  </ResultsHeader>
+                  <ResultsList>
+                    {dataProductos.map((item, index) => (
+                      <ProductResultItem
+                        key={item.id || index}
+                        onClick={() => {
+                          manejarSeleccionProducto(item);
+                          setStateListaproductos(false);
+                          setBuscador("");
+                        }}
+                        tabIndex={index === 0 ? 0 : -1}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            manejarSeleccionProducto(item);
+                            setStateListaproductos(false);
+                            setBuscador("");
+                          }
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            const next = e.target.nextSibling;
+                            if (next) next.focus();
+                          }
+                          if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            const prev = e.target.previousSibling;
+                            if (prev) prev.focus();
+                            else buscadorRef.current?.focus();
+                          }
+                        }}
+                      >
+                        <ProductIcon>
+                          <Icon icon="lucide:package" />
+                        </ProductIcon>
+                        <ProductInfo>
+                          <ProductName>{item.nombre}</ProductName>
+                          <ProductMeta>
+                            {item.codigo_barras && (
+                              <MetaTag>
+                                <Icon icon="lucide:barcode" />
+                                {item.codigo_barras}
+                              </MetaTag>
+                            )}
+                            <MetaTag className="price">
+                              <Icon icon="lucide:tag" />
+                              S/ {Number(item.precio_venta || 0).toFixed(2)}
+                            </MetaTag>
+                          </ProductMeta>
+                        </ProductInfo>
+                        <AddIcon>
+                          <Icon icon="lucide:plus-circle" />
+                        </AddIcon>
+                      </ProductResultItem>
+                    ))}
+                  </ResultsList>
+                </SearchResultsDropdown>
+              )}
+              
+              {/* Mensaje cuando no hay resultados */}
+              {stateListaproductos && buscador && dataProductos?.length === 0 && (
+                <SearchResultsDropdown>
+                  <NoResultsMessage>
+                    <Icon icon="lucide:search-x" />
+                    <span>No se encontraron productos para "{buscador}"</span>
+                  </NoResultsMessage>
+                </SearchResultsDropdown>
+              )}
             </SearchWrapper>
+
+            {/* Stepper de cantidad - después de buscar */}
+            <QuantityStepper>
+              <StepperButton 
+                onClick={() => setCantidadInput(prev => Math.max(1, prev - 1))}
+                disabled={cantidadInput <= 1}
+              >
+                <Icon icon="lucide:minus" />
+              </StepperButton>
+              <StepperValue>
+                <input
+                  type="number"
+                  min="1"
+                  value={cantidadInput}
+                  onChange={ValidarCantidad}
+                />
+              </StepperValue>
+              <StepperButton 
+                onClick={() => setCantidadInput(prev => prev + 1)}
+                className="plus"
+              >
+                <Icon icon="lucide:plus" />
+              </StepperButton>
+            </QuantityStepper>
 
             {/* Stepper de cantidad - después de buscar */}
             <QuantityStepper>
@@ -989,11 +1105,17 @@ const LoadingText = styled.span`
 const SearchIcon = styled.div`
   position: absolute;
   left: 16px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
   color: #9ca3af;
   font-size: 20px;
+  color: #9ca3af;
+  font-size: 20px;
   pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
   z-index: 1;
   display: flex;
   align-items: center;
@@ -1006,14 +1128,25 @@ const SearchInput = styled.input`
   border-radius: 14px;
   padding: 0 48px 0 48px;
   font-size: 15px;
+  height: 48px;
+  border: 2px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 0 48px 0 48px;
+  font-size: 15px;
   background: #fff;
+  color: #111;
   color: #111;
   outline: none;
   transition: all 0.2s ease;
   position: relative;
   z-index: 99;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 99;
 
   &:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     border-color: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
