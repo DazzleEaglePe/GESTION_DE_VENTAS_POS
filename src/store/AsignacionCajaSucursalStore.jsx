@@ -3,6 +3,9 @@ import {
   BuscarUsuariosAsignados,
   MostrarSucursalCajaAsignada,
   MostrarUsuariosAsignados,
+  MostrarUsuariosInactivos,
+  VerificarCajaAbiertaUsuario,
+  ActualizarAsignacionUsuario,
 } from "../supabase/crudAsignacionCajaSucursal";
 import { supabase } from "../supabase/supabase.config";
 const tabla = "asignacion_sucursal";
@@ -48,5 +51,25 @@ export const useAsignacionCajaSucursalStore = create((set) => ({
     if (error) {
       throw new Error(error.message);
     }
+  },
+  
+  // Usuarios inactivos
+  datausuariosInactivos: [],
+  mostrarUsuariosInactivos: async (p) => {
+    const response = await MostrarUsuariosInactivos(p);
+    set({ datausuariosInactivos: response });
+    return response;
+  },
+  
+  // Verificar caja abierta
+  verificarCajaAbiertaUsuario: async (p) => {
+    const response = await VerificarCajaAbiertaUsuario(p);
+    return response;
+  },
+  
+  // Actualizar asignación de sucursal/caja
+  actualizarAsignacionUsuario: async (p) => {
+    const response = await ActualizarAsignacionUsuario(p);
+    return response;
   },
 }));

@@ -25,7 +25,7 @@ export function TablaUsuarios({
   setdataSelect,
   setAccion,
 }) {
-  if (data==null) return;
+  if (data == null) return null;
   const [pagina, setPagina] = useState(1);
   const [datas, setData] = useState(data);
   const [columnFilters, setColumnFilters] = useState([]);
@@ -43,8 +43,27 @@ export function TablaUsuarios({
       confirmButtonText: "Si, eliminar",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        await eliminarUsuarioAsignado({ id: p.id_usuario });
-        queryClient.invalidateQueries(["mostrar usuarios asignados"])
+        const response = await eliminarUsuarioAsignado({ id: p.id_usuario });
+        
+        if (response?.exito === false) {
+          Swal.fire({
+            icon: "error",
+            title: "No se pudo eliminar",
+            text: response.mensaje,
+          });
+          return;
+        }
+        
+        queryClient.invalidateQueries(["mostrar usuarios asignados"]);
+        queryClient.invalidateQueries(["buscar usuarios asignados"]);
+        
+        Swal.fire({
+          icon: "success",
+          title: "Eliminado",
+          text: response?.mensaje || "Usuario eliminado correctamente",
+          timer: 2000,
+          showConfirmButton: false,
+        });
       }
     });
   }
@@ -246,13 +265,10 @@ export function TablaUsuarios({
 const Container = styled.div`
   position: relative;
 
-  margin: 5% 3%;
+  margin: 0;
+  padding: 14px;
   @media (min-width: ${v.bpbart}) {
-    margin: 2%;
-  }
-  @media (min-width: ${v.bphomer}) {
-    margin: 2em auto;
-    /* max-width: ${v.bphomer}; */
+    padding: 16px;
   }
   .responsive-table {
     width: 100%;

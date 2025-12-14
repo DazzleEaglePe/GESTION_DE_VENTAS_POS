@@ -1,13 +1,18 @@
 import { supabase } from "./supabase.config";
 const tabla = "caja";
 export async function MostrarCajaXSucursal(p) {
+  // Validar que id_sucursal existe
+  if (!p?.id_sucursal) {
+    return [];
+  }
+  
   const { data } = await supabase
     .from(tabla)
     .select()
     .eq("id_sucursal", p.id_sucursal)
     .eq("activo", true);
    
-  return data;
+  return data || [];
 }
 
 

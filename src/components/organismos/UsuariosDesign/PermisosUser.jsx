@@ -49,9 +49,10 @@ export const PermisosUser = () => {
   });
   useEffect(() => {
     if (accion === "Nuevo") {
+      // En nuevo: si cambian roles, actualizar selección por defecto
       const permisosPorRol =
         dataPermisosDefault
-          ?.filter((permiso) => permiso.id_rol === rolesItemSelect?.id)
+          ?.filter((permiso) => String(permiso.id_rol) === String(rolesItemSelect?.id))
           .map((permiso) => permiso.id_modulo) || [];
       setSelectedModules(permisosPorRol);
     }else{
@@ -60,7 +61,7 @@ export const PermisosUser = () => {
           nombre: itemSelect.rol,
        });
     }
-  }, []);
+  }, [accion, rolesItemSelect?.id, dataPermisosDefault]);
   useEffect(() => {
     if (accion !== "Nuevo" && datapermisos) {
       const permisosUsuario = datapermisos.map((p) => p.idmodulo);
@@ -75,54 +76,134 @@ export const PermisosUser = () => {
   if (isLoading) return <BarLoader />;
   return (
     <Container>
-      <Title>permisos</Title>
-      <label>Tipo: </label>
-      <SelectList
-        data={dataroles}
-        displayField="nombre"
-        onSelect={setRolesItemSelect}
-        itemSelect={rolesItemSelect}
-      />
-      <List>
-        {datamodulos?.map((module, index) => {
-          const isChecked = itemSelect
-            ? datapermisos?.some(
-                (p) => String(p.idmodulo) === String(module.id)
-              )
-            : selectedModules.includes(module.id);
-          return (
-            <ListItem key={module.id}>
-              <Check
-                checked={isChecked}
-                onChange={() => toggleModule(module.id)}
-              />
-              <Label>{module.nombre} </Label>
-            </ListItem>
-          );
-        })}
-      </List>
+      <RolSection>
+        <RolLabel>Tipo de rol</RolLabel>
+        <SelectList
+          data={dataroles}
+          displayField="nombre"
+          onSelect={setRolesItemSelect}
+          itemSelect={rolesItemSelect}
+        />
+      </RolSection>
+      
+      <ModulosSection>
+        <ModulosLabel>Accesos habilitados</ModulosLabel>
+        <ModulosList>
+          {datamodulos?.map((module) => {
+            const isChecked = itemSelect
+              ? datapermisos?.some(
+                  (p) => String(p.idmodulo) === String(module.id)
+                )
+              : selectedModules.includes(module.id);
+            return (
+              <ModuloItem key={module.id} onClick={() => toggleModule(module.id)}>
+                <Check
+                  checked={isChecked}
+                  onChange={() => toggleModule(module.id)}
+                />
+                <ModuloName>{module.nombre}</ModuloName>
+              </ModuloItem>
+            );
+          })}
+        </ModulosList>
+      </ModulosSection>
     </Container>
   );
 };
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  width: 100%;
-  padding: 1.5rem;
+  gap: 16px;
 `;
+
+const RolSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const RolLabel = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+`;
+
+const ModulosSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const ModulosLabel = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+`;
+
+const ModulosList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+  
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #eee;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+  }
+`;
+
+const ModuloItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+  
+  &:hover {
+    background: #f9f9f9;
+    border-color: #ddd;
+  }
+`;
+
+const ModuloName = styled.span`
+  font-size: 13px;
+  color: #333;
+  font-weight: 450;
+`;
+
+// Legacy - no longer used but kept for compatibility
 const Title = styled.span`
-  font-size: 1.5rem;
-  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
 `;
+
 const List = styled.ul`
   list-style: none;
   padding: 0;
 `;
+
 const ListItem = styled.li`
   display: flex;
   align-items: center;
   padding: 0.5rem 0;
 `;
+
 const Label = styled.span`
   font-size: 1rem;
   color: #555;

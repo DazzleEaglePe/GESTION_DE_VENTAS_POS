@@ -716,5 +716,367 @@ UPDATE almacen SET activo = true WHERE activo IS NULL;
 UPDATE impresoras SET activo = true WHERE activo IS NULL;
 
 -- ============================================
+-- 9. ACTUALIZAR FUNCIONES RPC DE USUARIOS
+-- ============================================
+-- Estas funciones deben filtrar solo usuarios activos
+
+-- Actualizar mostrarusuariosasignados para filtrar solo activos
+CREATE OR REPLACE FUNCTION public.mostrarusuariosasignados(_id_empresa integer) 
+RETURNS TABLE(
+  id_asignacion integer, 
+  id_usuario integer, 
+  usuario text, 
+  sucursal text, 
+  caja text, 
+  rol text, 
+  email text, 
+  estadouser text,
+  id_rol integer, 
+  nro_doc text, 
+  telefono text
+)
+LANGUAGE sql
+AS $$
+SELECT 
+  asignacion_sucursal.id as id_asignacion,
+  usuarios.id as id_usuario,
+  usuarios.nombres as usuario,
+  sucursales.nombre as sucursal, 
+  caja.descripcion as caja,
+  roles.nombre as rol, 
+  usuarios.correo as email, 
+  usuarios.estado as estadouser,
+  roles.id as id_rol,
+  usuarios.nro_doc,
+  usuarios.telefono
+FROM asignacion_sucursal 
+INNER JOIN sucursales ON asignacion_sucursal.id_sucursal = sucursales.id
+INNER JOIN usuarios ON asignacion_sucursal.id_usuario = usuarios.id
+INNER JOIN roles ON usuarios.id_rol = roles.id
+INNER JOIN caja ON asignacion_sucursal.id_caja = caja.id
+WHERE sucursales.id_empresa = _id_empresa 
+  AND roles.nombre != 'superadmin'
+  AND (usuarios.activo = true OR usuarios.activo IS NULL);
+$$;
+
+-- Actualizar buscarusuariosasignados para filtrar solo activos
+CREATE OR REPLACE FUNCTION public.buscarusuariosasignados(_id_empresa integer, buscador text) 
+RETURNS TABLE(
+  id_asignacion integer, 
+  id_usuario integer, 
+  usuario text, 
+  sucursal text, 
+  caja text, 
+  rol text, 
+  email text, 
+  estadouser text,
+  id_rol integer,
+  nro_doc text, 
+  telefono text
+)
+LANGUAGE sql
+AS $$
+SELECT 
+  asignacion_sucursal.id as id_asignacion,
+  usuarios.id as id_usuario,
+  usuarios.nombres as usuario,
+  sucursales.nombre as sucursal, 
+  caja.descripcion as caja,
+  roles.nombre as rol, 
+  usuarios.correo as email, 
+  usuarios.estado as estadouser,
+  roles.id as id_rol,
+  usuarios.nro_doc, 
+  usuarios.telefono
+FROM asignacion_sucursal 
+INNER JOIN sucursales ON asignacion_sucursal.id_sucursal = sucursales.id
+INNER JOIN usuarios ON asignacion_sucursal.id_usuario = usuarios.id
+INNER JOIN roles ON usuarios.id_rol = roles.id
+INNER JOIN caja ON asignacion_sucursal.id_caja = caja.id
+WHERE LOWER(usuarios.nombres) LIKE '%' || LOWER(buscador) || '%' 
+  AND sucursales.id_empresa = _id_empresa 
+  AND roles.nombre != 'superadmin'
+  AND (usuarios.activo = true OR usuarios.activo IS NULL);
+$$;
+
+-- ============================================
+-- 10. FUNCIONES PARA GESTIÓN DE USUARIOS INACTIVOS
+-- ============================================
+
+-- Mostrar usuarios inactivos (para pestaña "Inactivos" en UI)
+CREATE OR REPLACE FUNCTION public.mostrarusuariosinactivos(_id_empresa integer) 
+RETURNS TABLE(
+  id_asignacion integer, 
+  id_usuario integer, 
+  usuario text, 
+  sucursal text, 
+  caja text, 
+  rol text, 
+  email text, 
+  estadouser text,
+  id_rol integer, 
+  nro_doc text, 
+  telefono text,
+  fecha_eliminacion timestamp,
+  eliminado_por_nombre text
+)
+LANGUAGE sql
+AS $$
+SELECT 
+  asignacion_sucursal.id as id_asignacion,
+  usuarios.id as id_usuario,
+  usuarios.nombres as usuario,
+  sucursales.nombre as sucursal, 
+  caja.descripcion as caja,
+  roles.nombre as rol, 
+  usuarios.correo as email, 
+  'inactivo'::text as estadouser,
+  roles.id as id_rol,
+  usuarios.nro_doc,
+  usuarios.telefono,
+  usuarios.fecha_eliminacion,
+  COALESCE(eliminador.nombres, 'Sistema') as eliminado_por_nombre
+FROM asignacion_sucursal 
+INNER JOIN sucursales ON asignacion_sucursal.id_sucursal = sucursales.id
+INNER JOIN usuarios ON asignacion_sucursal.id_usuario = usuarios.id
+INNER JOIN roles ON usuarios.id_rol = roles.id
+INNER JOIN caja ON asignacion_sucursal.id_caja = caja.id
+LEFT JOIN usuarios eliminador ON usuarios.eliminado_por = eliminador.id
+WHERE sucursales.id_empresa = _id_empresa 
+  AND roles.nombre != 'superadmin'
+  AND usuarios.activo = false
+ORDER BY usuarios.fecha_eliminacion DESC;
+$$;
+
+COMMENT ON FUNCTION mostrarusuariosinactivos IS 'Muestra usuarios inactivos (soft deleted) de una empresa para restauración';
+
+-- Verificar si un email ya existe (activo o inactivo)
+CREATE OR REPLACE FUNCTION verificar_email_usuario(
+    _email text,
+    _id_empresa bigint DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_usuario RECORD;
+BEGIN
+    -- Buscar usuario con este email
+    SELECT 
+        u.id,
+        u.nombres,
+        u.correo,
+        u.activo,
+        u.fecha_eliminacion,
+        r.nombre AS rol
+    INTO v_usuario
+    FROM usuarios u
+    LEFT JOIN roles r ON u.id_rol = r.id
+    WHERE LOWER(u.correo) = LOWER(_email)
+    LIMIT 1;
+    
+    IF v_usuario.id IS NULL THEN
+        -- Email no existe
+        RETURN jsonb_build_object(
+            'existe', false,
+            'mensaje', 'Email disponible'
+        );
+    ELSIF v_usuario.activo = true THEN
+        -- Usuario activo con este email
+        RETURN jsonb_build_object(
+            'existe', true,
+            'activo', true,
+            'id_usuario', v_usuario.id,
+            'nombre', v_usuario.nombres,
+            'rol', v_usuario.rol,
+            'mensaje', 'Este email ya está en uso por un usuario activo'
+        );
+    ELSE
+        -- Usuario inactivo con este email (puede ser restaurado)
+        RETURN jsonb_build_object(
+            'existe', true,
+            'activo', false,
+            'id_usuario', v_usuario.id,
+            'nombre', v_usuario.nombres,
+            'rol', v_usuario.rol,
+            'fecha_eliminacion', v_usuario.fecha_eliminacion,
+            'mensaje', 'Existe un usuario inactivo con este email que puede ser restaurado'
+        );
+    END IF;
+END;
+$$;
+
+COMMENT ON FUNCTION verificar_email_usuario IS 'Verifica si un email existe y su estado (activo/inactivo)';
+
+-- Restaurar usuario específico (más específica que restaurar_registro genérica)
+CREATE OR REPLACE FUNCTION restaurar_usuario(
+    _id_usuario bigint
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_usuario RECORD;
+BEGIN
+    -- Verificar que el usuario existe y está inactivo
+    SELECT id, nombres, activo
+    INTO v_usuario
+    FROM usuarios
+    WHERE id = _id_usuario;
+    
+    IF v_usuario.id IS NULL THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Usuario no encontrado'
+        );
+    END IF;
+    
+    IF v_usuario.activo = true THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'El usuario ya está activo'
+        );
+    END IF;
+    
+    -- Restaurar el usuario
+    UPDATE usuarios
+    SET 
+        activo = true,
+        fecha_eliminacion = NULL,
+        eliminado_por = NULL
+    WHERE id = _id_usuario;
+    
+    RETURN jsonb_build_object(
+        'success', true,
+        'message', 'Usuario restaurado correctamente',
+        'nombre', v_usuario.nombres
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION restaurar_usuario IS 'Restaura un usuario eliminado (soft delete) por su ID';
+
+-- ============================================
+-- 11. FUNCIONES PARA CAMBIO DE SUCURSAL/CAJA DE USUARIO
+-- ============================================
+
+-- Verificar si usuario tiene caja abierta
+CREATE OR REPLACE FUNCTION verificar_caja_abierta_usuario(_id_usuario bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_cierre RECORD;
+BEGIN
+    -- Buscar cierre de caja abierto (estado = 0 significa abierta)
+    SELECT 
+        cc.id,
+        cc.fechainicio,
+        c.descripcion as caja_nombre,
+        s.nombre as sucursal_nombre
+    INTO v_cierre
+    FROM cierrecaja cc
+    JOIN caja c ON cc.id_caja = c.id
+    JOIN sucursales s ON c.id_sucursal = s.id
+    WHERE cc.id_usuario = _id_usuario 
+    AND cc.estado = 0
+    LIMIT 1;
+    
+    IF v_cierre.id IS NOT NULL THEN
+        RETURN jsonb_build_object(
+            'tiene_caja_abierta', true,
+            'id_cierre', v_cierre.id,
+            'caja', v_cierre.caja_nombre,
+            'sucursal', v_cierre.sucursal_nombre,
+            'fecha_apertura', v_cierre.fechainicio,
+            'mensaje', format('El usuario tiene caja abierta en %s - %s desde %s', 
+                v_cierre.sucursal_nombre, 
+                v_cierre.caja_nombre,
+                to_char(v_cierre.fechainicio, 'DD/MM/YYYY HH24:MI'))
+        );
+    END IF;
+    
+    RETURN jsonb_build_object(
+        'tiene_caja_abierta', false,
+        'mensaje', 'Usuario sin caja abierta'
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION verificar_caja_abierta_usuario IS 'Verifica si un usuario tiene una caja abierta (cierre pendiente)';
+
+-- Actualizar asignación de sucursal y caja
+CREATE OR REPLACE FUNCTION actualizar_asignacion_usuario(
+    _id_usuario bigint,
+    _id_sucursal bigint,
+    _id_caja bigint
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_caja_abierta jsonb;
+    v_asignacion_actual RECORD;
+    v_sucursal_nombre text;
+    v_caja_nombre text;
+BEGIN
+    -- 1. Verificar que el usuario no tenga caja abierta
+    v_caja_abierta := verificar_caja_abierta_usuario(_id_usuario);
+    
+    IF (v_caja_abierta->>'tiene_caja_abierta')::boolean = true THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'NO_SE_PUEDE_CAMBIAR',
+            'mensaje', v_caja_abierta->>'mensaje'
+        );
+    END IF;
+    
+    -- 2. Verificar que la caja pertenezca a la sucursal
+    IF NOT EXISTS (
+        SELECT 1 FROM caja 
+        WHERE id = _id_caja 
+        AND id_sucursal = _id_sucursal 
+        AND activo = true
+    ) THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'CAJA_INVALIDA',
+            'mensaje', 'La caja seleccionada no pertenece a la sucursal o está inactiva'
+        );
+    END IF;
+    
+    -- 3. Obtener nombres para el mensaje de éxito
+    SELECT nombre INTO v_sucursal_nombre FROM sucursales WHERE id = _id_sucursal;
+    SELECT descripcion INTO v_caja_nombre FROM caja WHERE id = _id_caja;
+    
+    -- 4. Verificar si ya existe asignación
+    SELECT * INTO v_asignacion_actual
+    FROM asignacion_sucursal
+    WHERE id_usuario = _id_usuario;
+    
+    IF v_asignacion_actual.id IS NOT NULL THEN
+        -- Actualizar asignación existente
+        UPDATE asignacion_sucursal
+        SET id_sucursal = _id_sucursal,
+            id_caja = _id_caja
+        WHERE id_usuario = _id_usuario;
+    ELSE
+        -- Crear nueva asignación
+        INSERT INTO asignacion_sucursal (id_usuario, id_sucursal, id_caja)
+        VALUES (_id_usuario, _id_sucursal, _id_caja);
+    END IF;
+    
+    RETURN jsonb_build_object(
+        'success', true,
+        'mensaje', format('Usuario asignado a %s - %s', v_sucursal_nombre, v_caja_nombre),
+        'sucursal', v_sucursal_nombre,
+        'caja', v_caja_nombre
+    );
+END;
+$$;
+
+COMMENT ON FUNCTION actualizar_asignacion_usuario IS 'Actualiza la sucursal y caja asignada a un usuario, validando que no tenga caja abierta';
+
+-- ============================================
 -- FIN DE MEJORAS FASE 3 - SOFT DELETE
 -- ============================================
