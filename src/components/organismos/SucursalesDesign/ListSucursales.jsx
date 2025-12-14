@@ -4,12 +4,11 @@ import { useSucursalesStore } from "../../../store/SucursalesStore";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
 import { BarLoader } from "react-spinners";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { Device } from "../../../styles/breakpoints";
-import { ButtonDashed } from "../../ui/buttons/ButtonDashed";
 import { useCajasStore } from "../../../store/CajasStore";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-export const ListSucursales = () => {
+
+export const ListSucursales = ({ data: dataProp, busqueda }) => {
   const queryClient = useQueryClient();
   const {
     mostrarCajasXSucursal,
@@ -26,11 +25,15 @@ export const ListSucursales = () => {
     eliminarCaja,
   } = useCajasStore();
 
-  const { data, isLoading, error } = useQuery({
+  // Solo cargar si no se pasan datos como prop
+  const { data: dataQuery, isLoading, error } = useQuery({
     queryKey: ["mostrar Cajas XSucursal"],
     queryFn: () => mostrarCajasXSucursal({ id_empresa: dataempresa?.id }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa && !dataProp,
   });
+
+  // Usar datos de prop si existen, sino los de query
+  const data = dataProp || dataQuery;
 
   const editarSucursal = (p) => {
     selectSucursal(p);
@@ -52,7 +55,7 @@ export const ListSucursales = () => {
     return new Promise((resolve, reject) => {
       Swal.fire({
         title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminado, se eliminaran todas las ventas relacionadas",
+        text: "Una vez eliminado, se desactivará la caja",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -61,7 +64,12 @@ export const ListSucursales = () => {
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            await eliminarCaja({ id: id });
+            const response = await eliminarCaja({ id: id });
+            // Verificar si el servidor retornó un error de validación
+            if (response && !response.exito) {
+              reject(new Error(response.mensaje));
+              return;
+            }
             resolve();
           } catch (error) {
             reject(error);
@@ -76,7 +84,7 @@ export const ListSucursales = () => {
     return new Promise((resolve, reject) => {
       Swal.fire({
         title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminado, se eliminaran todas las ventas relacionadas",
+        text: "Una vez eliminado, se desactivará la sucursal",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -85,7 +93,12 @@ export const ListSucursales = () => {
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            await eliminarSucursal({ id: id });
+            const response = await eliminarSucursal({ id: id });
+            // Verificar si el servidor retornó un error de validación
+            if (response && !response.exito) {
+              reject(new Error(response.mensaje));
+              return;
+            }
             resolve();
           } catch (error) {
             reject(error);
@@ -100,85 +113,122 @@ export const ListSucursales = () => {
     mutationKey: ["eliminar Sucursal"],
     mutationFn: controladorEliminarSucursal,
     onError: (error) => {
-      toast.error(`Error: ${error.message}`);
+      if (!error.message.includes("cancelada")) {
+        toast.error(`${error.message}`);
+      }
     },
     onSuccess: () => {
-      toast.success("Sucursal eliminada");
+      toast.success("Sucursal desactivada correctamente");
       queryClient.invalidateQueries(["mostrar Cajas XSucursal"]);
+      queryClient.invalidateQueries(["sucursales inactivas"]);
     },
   });
   const {mutate:doDeleteCaja} = useMutation({
     mutationKey: ["eliminar caja"],
     mutationFn: controladorEliminarCaja,
     onError: (error) => {
-      toast.error(`Error: ${error.message}`);
+      if (!error.message.includes("cancelada")) {
+        toast.error(`${error.message}`);
+      }
     },
     onSuccess: () => {
-      toast.success("Caja eliminada");
+      toast.success("Caja desactivada correctamente");
       queryClient.invalidateQueries(["mostrar Cajas XSucursal"]);
     },
   });
-  if (isLoading) return <BarLoader color="#6d6d6d" />;
-  if (error) return <span>error...{error.message}</span>;
+
+  if (!dataProp && isLoading) return <LoadingContainer><BarLoader color="#2563eb" /></LoadingContainer>;
+  if (!dataProp && error) return <ErrorMessage>Error: {error.message}</ErrorMessage>;
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState>
+        <Icon icon="lucide:building-2" />
+        <p>No hay sucursales {busqueda ? "que coincidan con la búsqueda" : "registradas"}</p>
+      </EmptyState>
+    );
+  }
 
   return (
     <Container>
       {data?.map((sucursal, index) => {
         return (
-          <Sucursal key={index}>
+          <Sucursal key={sucursal.id || index}>
             <SucursalHeader>
-              <Acciones $right="0px" $top="0px">
+              <SucursalLeft>
+                <SucursalIcon>
+                  <Icon icon="lucide:building-2" />
+                </SucursalIcon>
+                <SucursalInfo>
+                  <SucursalTitle>{sucursal.nombre}</SucursalTitle>
+                  <SucursalMeta>
+                    <Icon icon="lucide:monitor" />
+                    <span>{sucursal.caja?.length || 0} cajas</span>
+                  </SucursalMeta>
+                </SucursalInfo>
+              </SucursalLeft>
+              <Acciones>
                 {sucursal?.delete && (
-                  <Icon
-                    icon="wpf:delete"
-                    width="15"
-                    height="15"
-                    className="deleteicon" onClick={()=>doDeleteSucursal(sucursal?.id)}
-                  />
+                  <ActionBtn 
+                    $variant="danger"
+                    onClick={() => doDeleteSucursal(sucursal?.id)}
+                    title="Eliminar sucursal"
+                  >
+                    <Icon icon="lucide:trash-2" />
+                  </ActionBtn>
                 )}
-
-                <Icon
-                  icon="mdi:edit"
-                  width="20"
-                  height="20"
+                <ActionBtn 
+                  $variant="edit"
                   onClick={() => editarSucursal(sucursal)}
-                />
+                  title="Editar sucursal"
+                >
+                  <Icon icon="lucide:pencil" />
+                </ActionBtn>
               </Acciones>
-              <SucursalTitle>SUCURSAL: {sucursal.nombre}</SucursalTitle>
             </SucursalHeader>
-            <CajaList>
-              {sucursal.caja?.map((caja, index) => {
-                return (
-                  <CajaItem key={index}>
-                    <CajaInfo>
-                      <FechaCreacion>{caja.fecha_creacion} </FechaCreacion>
-                    </CajaInfo>
-                    <CajaDescripcion>{caja.descripcion} </CajaDescripcion>
-                    <Acciones $right="10px" $bottom="10px">
-                      {caja?.delete && (
-                        <Icon
-                          icon="wpf:delete"
-                          width="15"
-                          height="15"
-                          className="deleteicon" onClick={()=>doDeleteCaja(caja?.id)}
-                        />
-                      )}
 
-                      <Icon
-                        icon="mdi:edit"
-                        width="20"
-                        height="20"
-                        onClick={() => editarCaja(caja)}
-                      />
-                    </Acciones>
-                  </CajaItem>
-                );
-              })}
+            <CajaList>
+              {sucursal.caja?.filter(c => c.activo !== false).map((caja, idx) => (
+                <CajaItem key={caja.id || idx}>
+                  <CajaLeft>
+                    <CajaIcon>
+                      <Icon icon="lucide:monitor" />
+                    </CajaIcon>
+                    <CajaInfo>
+                      <CajaDescripcion>{caja.descripcion}</CajaDescripcion>
+                      <FechaCreacion>
+                        Creada: {new Date(caja.fecha_creacion).toLocaleDateString("es-PE")}
+                      </FechaCreacion>
+                    </CajaInfo>
+                  </CajaLeft>
+                  <CajaActions>
+                    {caja?.delete && (
+                      <ActionBtn 
+                        $variant="danger"
+                        $small
+                        onClick={() => doDeleteCaja(caja?.id)}
+                        title="Eliminar caja"
+                      >
+                        <Icon icon="lucide:trash-2" />
+                      </ActionBtn>
+                    )}
+                    <ActionBtn 
+                      $variant="edit"
+                      $small
+                      onClick={() => editarCaja(caja)}
+                      title="Editar caja"
+                    >
+                      <Icon icon="lucide:pencil" />
+                    </ActionBtn>
+                  </CajaActions>
+                </CajaItem>
+              ))}
             </CajaList>
-            <ButtonDashed
-              title={"agregar caja"}
-              funcion={() => agregarCaja(sucursal)}
-            />
+
+            <AddCajaBtn onClick={() => agregarCaja(sucursal)}>
+              <Icon icon="lucide:plus" />
+              <span>Agregar caja</span>
+            </AddCajaBtn>
           </Sucursal>
         );
       })}
@@ -187,65 +237,144 @@ export const ListSucursales = () => {
 };
 
 const Container = styled.div`
-  column-count: 1;
-  column-gap: 20px;
-  width: 90%;
-  max-width: 1200px;
-  margin: auto;
-  @media ${Device.tablet} {
-    column-count: 2;
-  }
-  @media ${Device.desktop} {
-    column-count: 3;
-  }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  width: 100%;
 `;
-const Acciones = styled.section`
-  position: absolute;
-  right: ${(props) => props.$right};
-  top: ${(props) => props.$top};
-  bottom: ${(props) => props.$bottom};
+
+const LoadingContainer = styled.div`
   display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  .deleteicon {
-    &:hover {
-      color: #c22929 !important;
-    }
+  justify-content: center;
+  padding: 40px;
+`;
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #ef4444;
+  font-size: 14px;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+
+  svg {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
   }
 `;
+
 const Sucursal = styled.div`
-  background-color: ${({ theme }) => theme.body};
-  border: 2px solid ${({ theme }) => theme.bordercolorDash};
-  border-radius: 20px;
-  padding: 15px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
-  break-inside: avoid;
-  margin-bottom: 20px;
-  position: relative;
+  gap: 16px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
 `;
+
 const SucursalHeader = styled.div`
-  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const SucursalLeft = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  position: relative;
+  gap: 12px;
 `;
+
+const SucursalIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 12px;
+
+  svg {
+    font-size: 22px;
+    color: #2563eb;
+  }
+`;
+
+const SucursalInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
 const SucursalTitle = styled.h3`
-  font-size: 18px;
-  color: ${({ theme }) => theme.text};
-  font-weight: bold;
-  text-transform: uppercase;
-  position: relative;
-  top: 10px;
-  /* Evitar desbordes */
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
   word-wrap: break-word;
   word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+`;
+
+const SucursalMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+
+  svg {
+    font-size: 14px;
+  }
+`;
+
+const Acciones = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ActionBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: ${({ $small }) => ($small ? "28px" : "32px")};
+  height: ${({ $small }) => ($small ? "28px" : "32px")};
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${({ $variant }) => 
+    $variant === "danger" ? "#fef2f2" : "#f3f4f6"};
+  color: ${({ $variant }) => 
+    $variant === "danger" ? "#ef4444" : "#6b7280"};
+
+  svg {
+    font-size: ${({ $small }) => ($small ? "14px" : "16px")};
+  }
+
+  &:hover {
+    background: ${({ $variant }) => 
+      $variant === "danger" ? "#fee2e2" : "#e5e7eb"};
+    color: ${({ $variant }) => 
+      $variant === "danger" ? "#dc2626" : "#374151"};
+  }
 `;
 
 const CajaList = styled.ul`
@@ -256,29 +385,91 @@ const CajaList = styled.ul`
   flex-direction: column;
   gap: 10px;
 `;
+
 const CajaItem = styled.li`
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  border: 2px solid ${({ theme }) => theme.bg};
-  padding: 10px;
-  border-radius: 8px;
+  align-items: center;
   justify-content: space-between;
-  position: relative;
+  gap: 12px;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  border-radius: 10px;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #f5f5f5;
+    border-color: #d1d5db;
+  }
 `;
+
+const CajaLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const CajaIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #e5e7eb;
+  border-radius: 8px;
+
+  svg {
+    font-size: 18px;
+    color: #6b7280;
+  }
+`;
+
 const CajaInfo = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 2px;
 `;
-const FechaCreacion = styled.span`
-  font-size: 14px;
-  color: #9ca3af;
-  text-align: start;
-`;
+
 const CajaDescripcion = styled.span`
-  font-size: 16px;
-  color: ${({ theme }) => theme.text};
-  font-weight: bold;
-  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+`;
+
+const FechaCreacion = styled.span`
+  font-size: 12px;
+  color: #9ca3af;
+`;
+
+const CajaActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const AddCajaBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  svg {
+    font-size: 18px;
+  }
+
+  &:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #f0f9ff;
+  }
 `;

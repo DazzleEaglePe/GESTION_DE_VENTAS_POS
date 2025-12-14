@@ -1,24 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
-import { useSucursalesStore } from "../../../store/SucursalesStore";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
 import { BarLoader } from "react-spinners";
 import { Icon } from "@iconify/react/dist/iconify.js";
-import { Device } from "../../../styles/breakpoints";
-import { ButtonDashed } from "../../ui/buttons/ButtonDashed";
-import { useCajasStore } from "../../../store/CajasStore";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { useAlmacenesStore } from "../../../store/AlmacenesStore";
-export const ListAlmacenes = () => {
+
+export const ListAlmacenes = ({ data: dataProp, busqueda }) => {
   const queryClient = useQueryClient();
-  const {
-    mostrarCajasXSucursal,
-    setStateSucursal,
-    setAccion,
-    selectSucursal,
-    eliminarSucursal,
-  } = useSucursalesStore();
   const { dataempresa } = useEmpresaStore();
   const {
     setStateAlmacen,
@@ -28,42 +18,47 @@ export const ListAlmacenes = () => {
     mostrarAlmacenesXEmpresa,
   } = useAlmacenesStore();
 
-  const { data, isLoading, error } = useQuery({
+  // Solo cargar si no se pasan datos como prop
+  const { data: dataQuery, isLoading, error } = useQuery({
     queryKey: ["mostrar almacenes X empresa"],
     queryFn: () => mostrarAlmacenesXEmpresa({ id_empresa: dataempresa?.id }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa && !dataProp,
   });
 
-  const editarSucursal = (p) => {
-    selectSucursal(p);
-    setStateSucursal(true);
-    setAccion("Editar");
-  };
-  const agregarAlmacen = (p) => {
+  // Usar datos de prop si existen, sino los de query
+  const data = dataProp || dataQuery;
+
+  const agregarAlmacen = (sucursal) => {
     setAccionAlmacen("Nuevo");
     setStateAlmacen(true);
-    console.log(p);
-    setAlmacenSelectItem(p);
+    setAlmacenSelectItem(sucursal);
   };
-  const editarAlmacen = (p) => {
+
+  const editarAlmacen = (almacen) => {
     setStateAlmacen(true);
     setAccionAlmacen("Editar");
-    setAlmacenSelectItem(p);
+    setAlmacenSelectItem(almacen);
   };
+
   const controladorEliminarAlmacen = (id) => {
     return new Promise((resolve, reject) => {
       Swal.fire({
-        title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminado, se eliminaran todas las ventas relacionadas",
+        title: "¿Estás seguro(a)?",
+        text: "Se desactivará este almacén",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Sí, eliminar",
+        confirmButtonColor: "#f59e0b",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Sí, desactivar",
+        cancelButtonText: "Cancelar",
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            await eliminarAlmacen({ id: id });
+            const response = await eliminarAlmacen({ id: id });
+            if (response && !response.exito) {
+              reject(new Error(response.mensaje));
+              return;
+            }
             resolve();
           } catch (error) {
             reject(error);
@@ -74,184 +69,209 @@ export const ListAlmacenes = () => {
       });
     });
   };
-  const controladorEliminarSucursal = (id) => {
-    return new Promise((resolve, reject) => {
-      Swal.fire({
-        title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminado, se eliminaran todas las ventas relacionadas",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Sí, eliminar",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            await eliminarSucursal({ id: id });
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        } else {
-          reject(new Error("Eliminación cancelada"));
-        }
-      });
-    });
-  };
-  const { mutate: doDeleteSucursal } = useMutation({
-    mutationKey: ["eliminar Sucursal"],
-    mutationFn: controladorEliminarSucursal,
-    onError: (error) => {
-      toast.error(`Error: ${error.message}`);
-    },
-    onSuccess: () => {
-      toast.success("Sucursal eliminada");
-      queryClient.invalidateQueries(["mostrar Cajas XSucursal"]);
-    },
-  });
-  const { mutate: doDeleteCaja } = useMutation({
+
+  const { mutate: doDeleteAlmacen } = useMutation({
     mutationKey: ["eliminar almacen"],
     mutationFn: controladorEliminarAlmacen,
     onError: (error) => {
-      toast.error(`Error: ${error.message}`);
+      if (!error.message.includes("cancelada")) {
+        toast.error(`${error.message}`);
+      }
     },
     onSuccess: () => {
-      toast.success("Almacen eliminado");
+      toast.success("Almacén desactivado correctamente");
       queryClient.invalidateQueries(["mostrar almacenes X empresa"]);
+      queryClient.invalidateQueries(["almacenes inactivos"]);
     },
   });
-  if (isLoading) return <BarLoader color="#6d6d6d" />;
-  if (error) return <span>error...{error.message}</span>;
+
+  if (!dataProp && isLoading) return <LoadingContainer><BarLoader color="#f59e0b" /></LoadingContainer>;
+  if (!dataProp && error) return <ErrorMessage>Error: {error.message}</ErrorMessage>;
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState>
+        <Icon icon="lucide:warehouse" />
+        <p>No hay sucursales {busqueda ? "que coincidan con la búsqueda" : "con almacenes"}</p>
+      </EmptyState>
+    );
+  }
 
   return (
     <Container>
-      {data?.map((sucursal, index) => {
-        return (
-          <Sucursal key={index}>
-            <SucursalHeader>
-              <Acciones $right="0px" $top="0px">
-                {sucursal?.delete && (
-                  <Icon
-                    icon="wpf:delete"
-                    width="15"
-                    height="15"
-                    className="deleteicon"
-                    onClick={() => doDeleteSucursal(sucursal?.id)}
-                  />
-                )}
+      {data?.map((sucursal) => (
+        <SucursalCard key={sucursal.id}>
+          <SucursalHeader>
+            <SucursalLeft>
+              <SucursalIcon>
+                <Icon icon="lucide:building-2" />
+              </SucursalIcon>
+              <SucursalInfo>
+                <SucursalTitle>{sucursal.nombre}</SucursalTitle>
+                <SucursalMeta>
+                  <Icon icon="lucide:warehouse" />
+                  <span>{sucursal.almacen?.filter(a => a.activo !== false).length || 0} almacenes</span>
+                </SucursalMeta>
+              </SucursalInfo>
+            </SucursalLeft>
+          </SucursalHeader>
 
-                <Icon
-                  icon="mdi:edit"
-                  width="20"
-                  height="20"
-                  onClick={() => editarSucursal(sucursal)}
-                />
-              </Acciones>
-              <SucursalTitle>SUCURSAL: {sucursal.nombre}</SucursalTitle>
-            </SucursalHeader>
-            <CajaList>
-              {sucursal.almacen?.map((almacen, index) => {
-                return (
-                  <CajaItem key={index}>
-                    <CajaInfo>
-                      <FechaCreacion>{almacen.fecha_creacion} </FechaCreacion>
-                    </CajaInfo>
-                    <CajaDescripcion>{almacen.nombre} </CajaDescripcion>
-                    <Acciones $right="10px" $bottom="10px">
-                      {almacen?.delete && (
-                        <Icon
-                          icon="wpf:delete"
-                          width="15"
-                          height="15"
-                          className="deleteicon"
-                          onClick={() => doDeleteCaja(almacen?.id)}
-                        />
-                      )}
-                      <Icon
-                        icon="mdi:edit"
-                        width="20"
-                        height="20"
-                        onClick={() => editarAlmacen(almacen)}
-                      />
-                    </Acciones>
-                  </CajaItem>
-                );
-              })}
-            </CajaList>
-            <ButtonDashed
-              title={"agregar almacen"}
-              funcion={() => agregarAlmacen(sucursal)}
-            />
-          </Sucursal>
-        );
-      })}
+          <AlmacenList>
+            {sucursal.almacen?.filter(a => a.activo !== false).map((almacen) => (
+              <AlmacenItem key={almacen.id}>
+                <AlmacenLeft>
+                  <AlmacenIcon>
+                    <Icon icon="lucide:warehouse" />
+                  </AlmacenIcon>
+                  <AlmacenInfo>
+                    <AlmacenNombre>{almacen.nombre}</AlmacenNombre>
+                    <AlmacenFecha>
+                      Creado: {new Date(almacen.fecha_creacion).toLocaleDateString("es-PE")}
+                    </AlmacenFecha>
+                  </AlmacenInfo>
+                </AlmacenLeft>
+                <AlmacenActions>
+                  {almacen?.delete && (
+                    <ActionBtn 
+                      $variant="danger"
+                      onClick={() => doDeleteAlmacen(almacen?.id)}
+                      title="Desactivar almacén"
+                    >
+                      <Icon icon="lucide:trash-2" />
+                    </ActionBtn>
+                  )}
+                  <ActionBtn 
+                    $variant="edit"
+                    onClick={() => editarAlmacen(almacen)}
+                    title="Editar almacén"
+                  >
+                    <Icon icon="lucide:pencil" />
+                  </ActionBtn>
+                </AlmacenActions>
+              </AlmacenItem>
+            ))}
+          </AlmacenList>
+
+          <AddAlmacenBtn onClick={() => agregarAlmacen(sucursal)}>
+            <Icon icon="lucide:plus" />
+            <span>Agregar almacén</span>
+          </AddAlmacenBtn>
+        </SucursalCard>
+      ))}
     </Container>
   );
 };
 
 const Container = styled.div`
-  column-count: 1;
-  column-gap: 20px;
-  width: 90%;
-  max-width: 1200px;
-  margin: auto;
-  @media ${Device.tablet} {
-    column-count: 2;
-  }
-  @media ${Device.desktop} {
-    column-count: 3;
-  }
-`;
-const Acciones = styled.section`
-  position: absolute;
-  right: ${(props) => props.$right};
-  top: ${(props) => props.$top};
-  bottom: ${(props) => props.$bottom};
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  .deleteicon {
-    &:hover {
-      color: #c22929 !important;
-    }
-  }
-`;
-const Sucursal = styled.div`
-  background-color: ${({ theme }) => theme.body};
-  border: 2px solid ${({ theme }) => theme.bordercolorDash};
-  border-radius: 20px;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1);
-  break-inside: avoid;
-  margin-bottom: 20px;
-  position: relative;
-`;
-const SucursalHeader = styled.div`
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: relative;
-`;
-const SucursalTitle = styled.h3`
-  font-size: 18px;
-  color: ${({ theme }) => theme.text};
-  font-weight: bold;
-  text-transform: uppercase;
-  position: relative;
-  top: 10px;
-  /* Evitar desbordes */
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  width: 100%;
 `;
 
-const CajaList = styled.ul`
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+`;
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 40px;
+  color: #ef4444;
+  font-size: 14px;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+
+  svg {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
+  }
+`;
+
+const SucursalCard = styled.div`
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+`;
+
+const SucursalHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const SucursalLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const SucursalIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 12px;
+
+  svg {
+    font-size: 22px;
+    color: #2563eb;
+  }
+`;
+
+const SucursalInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const SucursalTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  word-wrap: break-word;
+  word-break: break-word;
+`;
+
+const SucursalMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+
+  svg {
+    font-size: 14px;
+    color: #f59e0b;
+  }
+`;
+
+const AlmacenList = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0;
@@ -259,29 +279,117 @@ const CajaList = styled.ul`
   flex-direction: column;
   gap: 10px;
 `;
-const CajaItem = styled.li`
+
+const AlmacenItem = styled.li`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 12px;
+  border-radius: 10px;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #fef3c7;
+    border-color: #fcd34d;
+  }
+`;
+
+const AlmacenLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const AlmacenIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #fde68a;
+  border-radius: 8px;
+
+  svg {
+    font-size: 18px;
+    color: #f59e0b;
+  }
+`;
+
+const AlmacenInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  border: 2px solid ${({ theme }) => theme.bg};
-  padding: 10px;
-  border-radius: 8px;
-  justify-content: space-between;
-  position: relative;
+  gap: 2px;
 `;
-const CajaInfo = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-const FechaCreacion = styled.span`
+
+const AlmacenNombre = styled.span`
   font-size: 14px;
-  color: #9ca3af;
-  text-align: start;
+  font-weight: 500;
+  color: #1f2937;
 `;
-const CajaDescripcion = styled.span`
-  font-size: 16px;
-  color: ${({ theme }) => theme.text};
-  font-weight: bold;
-  text-align: center;
+
+const AlmacenFecha = styled.span`
+  font-size: 12px;
+  color: #9ca3af;
+`;
+
+const AlmacenActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const ActionBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${({ $variant }) => 
+    $variant === "danger" ? "#fef2f2" : "#f3f4f6"};
+  color: ${({ $variant }) => 
+    $variant === "danger" ? "#ef4444" : "#6b7280"};
+
+  svg {
+    font-size: 14px;
+  }
+
+  &:hover {
+    background: ${({ $variant }) => 
+      $variant === "danger" ? "#fee2e2" : "#e5e7eb"};
+    color: ${({ $variant }) => 
+      $variant === "danger" ? "#dc2626" : "#374151"};
+  }
+`;
+
+const AddAlmacenBtn = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 2px dashed #fcd34d;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #f59e0b;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  svg {
+    font-size: 18px;
+  }
+
+  &:hover {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
 `;

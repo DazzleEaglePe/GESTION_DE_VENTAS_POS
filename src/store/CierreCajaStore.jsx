@@ -5,6 +5,9 @@ import {
   CerrarTurnoCaja,
   CerrarTurnoCajaAtomico,
   ValidarEstadoCierreCaja,
+  ValidarSupervisor,
+  ObtenerDiferenciasCaja,
+  MarcarDiferenciaRevisada,
 } from "../supabase/crudCierresCaja";
 import { supabase } from "../supabase/supabase.config";
 const tabla = "cierrecaja";
@@ -33,6 +36,21 @@ export const useCierreCajaStore = create((set) => ({
   // Nueva función atómica para cerrar caja
   cerrarTurnoCajaAtomico: async (p) => {
     const response = await CerrarTurnoCajaAtomico(p);
+    return response;
+  },
+  // Validar código de supervisor
+  validarSupervisor: async (p) => {
+    const response = await ValidarSupervisor(p);
+    return response;
+  },
+  // Obtener historial de diferencias para dashboard
+  obtenerDiferenciasCaja: async (p) => {
+    const response = await ObtenerDiferenciasCaja(p);
+    return response;
+  },
+  // Marcar diferencia como revisada
+  marcarDiferenciaRevisada: async (p) => {
+    const response = await MarcarDiferenciaRevisada(p);
     return response;
   },
   // Validar estado antes de cerrar

@@ -1,14 +1,11 @@
 import styled from "styled-components";
-import { v } from "../../../styles/variables";
+import { Icon } from "@iconify/react";
 import {
-  InputText,
-  Btn1,
   useSucursalesStore,
   ConvertirCapitalize,
   useEmpresaStore,
 } from "../../../index";
 import { useForm } from "react-hook-form";
-import { BtnClose } from "../../ui/buttons/BtnClose";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -85,124 +82,311 @@ export function RegistrarSucursal() {
   };
 
   return (
-    <Container>
-      {isPending ? (
-        <span>guardando...🔼</span>
-      ) : (
-        <div className="sub-contenedor">
-          <div className="headers">
-            <section>
-              <h1>
-                {accion == "Editar"
-                  ? "Editar sucursal"
-                  : "Registrar nueva sucursal"}
-              </h1>
-            </section>
+    <Overlay onClick={handleCerrarConConfirmacion}>
+      <Modal onClick={(e) => e.stopPropagation()}>
+        {isPending ? (
+          <LoadingState>
+            <Icon icon="lucide:loader-2" className="spin" />
+            <span>Guardando...</span>
+          </LoadingState>
+        ) : (
+          <>
+            <ModalHeader>
+              <HeaderLeft>
+                <IconWrapper>
+                  <Icon icon="lucide:building-2" />
+                </IconWrapper>
+                <HeaderInfo>
+                  <ModalTitle>
+                    {accion === "Editar" ? "Editar sucursal" : "Nueva sucursal"}
+                  </ModalTitle>
+                  <ModalSubtitle>
+                    {accion === "Editar" 
+                      ? "Modifica los datos de la sucursal"
+                      : "Ingresa los datos de la nueva sucursal"}
+                  </ModalSubtitle>
+                </HeaderInfo>
+              </HeaderLeft>
+              <CloseButton onClick={handleCerrarConConfirmacion}>
+                <Icon icon="lucide:x" />
+              </CloseButton>
+            </ModalHeader>
 
-            <section>
-              <BtnClose funcion={handleCerrarConConfirmacion} />
-            </section>
-          </div>
-
-          <form className="formulario" onSubmit={handleSubmit(handlesub)}>
-            <section className="form-subcontainer">
-              <article>
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    className="form__field"
-                    defaultValue={sucursalesItemSelect?.nombre}
+            <ModalBody>
+              <Form onSubmit={handleSubmit(handlesub)}>
+                <FormGroup>
+                  <Label htmlFor="nombre">
+                    <Icon icon="lucide:store" />
+                    Nombre de sucursal *
+                  </Label>
+                  <Input
+                    id="nombre"
                     type="text"
-                    placeholder="sucursal"
-                    {...register("nombre", {
-                      required: true,
-                    })}
+                    placeholder="Ej: Sucursal Centro"
+                    defaultValue={accion === "Editar" ? sucursalesItemSelect?.nombre : ""}
+                    $hasError={errors.nombre}
+                    {...register("nombre", { required: true })}
                   />
-                  <label className="form__label">sucursal</label>
-                  {errors.nombre?.type === "required" && <p>Campo requerido</p>}
-                </InputText>
-              </article>
-              <article>
-                <InputText icono={<v.iconoflechaderecha />}>
-                  <input
-                    className="form__field"
-                    defaultValue={
-                      accion === "Editar"
-                        ? sucursalesItemSelect?.direccion_fiscal
-                        : ""
-                    }
+                  {errors.nombre?.type === "required" && (
+                    <ErrorText>Este campo es requerido</ErrorText>
+                  )}
+                </FormGroup>
+
+                <FormGroup>
+                  <Label htmlFor="direccion_fiscal">
+                    <Icon icon="lucide:map-pin" />
+                    Dirección fiscal
+                  </Label>
+                  <Input
+                    id="direccion_fiscal"
                     type="text"
-                    placeholder="direccion fiscal"
+                    placeholder="Ej: Av. Principal 123"
+                    defaultValue={accion === "Editar" ? sucursalesItemSelect?.direccion_fiscal : ""}
                     {...register("direccion_fiscal")}
                   />
-                  <label className="form__label">direccion fiscal</label>
-                  
-                </InputText>
-              </article>
+                </FormGroup>
 
-              <Btn1
-                icono={<v.iconoguardar />}
-                titulo="Guardar"
-                bgcolor="#F9D70B"
-              />
-            </section>
-          </form>
-        </div>
-      )}
-    </Container>
+                <ButtonGroup>
+                  <CancelButton type="button" onClick={handleCerrarConConfirmacion}>
+                    Cancelar
+                  </CancelButton>
+                  <SubmitButton type="submit">
+                    <Icon icon="lucide:check" />
+                    {accion === "Editar" ? "Guardar cambios" : "Crear sucursal"}
+                  </SubmitButton>
+                </ButtonGroup>
+              </Form>
+            </ModalBody>
+          </>
+        )}
+      </Modal>
+    </Overlay>
   );
 }
-const Container = styled.div`
-  transition: 0.5s;
-  top: 0;
-  left: 0;
+const Overlay = styled.div`
   position: fixed;
+  inset: 0;
   display: flex;
-  width: 100%;
-  min-height: 100vh;
   align-items: center;
   justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   z-index: 1000;
-  backdrop-filter: blur(5px);
-  .sub-contenedor {
-    position: relative;
-    width: 500px;
-    max-width: 85%;
-    border-radius: 20px;
-    background: ${({ theme }) => theme.body};
-    box-shadow: -10px 15px 30px rgba(10, 9, 9, 0.4);
-    padding: 13px 36px 20px 36px;
-    z-index: 100;
-    max-height: 80vh;
-    overflow-y: auto;
+  padding: 20px;
+`;
 
-    .headers {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
+const Modal = styled.div`
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideUp 0.2s ease-out;
 
-      h1 {
-        font-size: 30px;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-      span {
-        font-size: 20px;
-        cursor: pointer;
-      }
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-    .formulario {
-      .form-subcontainer {
-        gap: 20px;
-        display: flex;
-        flex-direction: column;
-        .colorContainer {
-          .colorPickerContent {
-            padding-top: 15px;
-            min-height: 50px;
-          }
-        }
-      }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
+  }
+`;
+
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px;
+  color: #6b7280;
+
+  .spin {
+    font-size: 32px;
+    color: #2563eb;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 24px 0;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+`;
+
+const IconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 12px;
+
+  svg {
+    font-size: 24px;
+    color: #2563eb;
+  }
+`;
+
+const HeaderInfo = styled.div``;
+
+const ModalTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+`;
+
+const ModalSubtitle = styled.p`
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 4px 0 0;
+`;
+
+const CloseButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  svg {
+    font-size: 20px;
+    color: #6b7280;
+  }
+
+  &:hover {
+    background: #e5e7eb;
+    svg { color: #374151; }
+  }
+`;
+
+const ModalBody = styled.div`
+  padding: 24px;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const Label = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+
+  svg {
+    font-size: 16px;
+    color: #6b7280;
+  }
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #f9fafb;
+  border: 1px solid ${({ $hasError }) => ($hasError ? '#ef4444' : '#e5e7eb')};
+  border-radius: 10px;
+  transition: all 0.15s;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:focus {
+    outline: none;
+    background: #fff;
+    border-color: ${({ $hasError }) => ($hasError ? '#ef4444' : '#2563eb')};
+    box-shadow: 0 0 0 3px ${({ $hasError }) => ($hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(37, 99, 235, 0.1)')};
+  }
+`;
+
+const ErrorText = styled.span`
+  font-size: 12px;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+`;
+
+const CancelButton = styled.button`
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+`;
+
+const SubmitButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  svg {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: #1d4ed8;
   }
 `;
