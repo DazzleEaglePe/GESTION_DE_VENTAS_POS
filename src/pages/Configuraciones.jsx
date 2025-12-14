@@ -8,7 +8,7 @@ export function Configuraciones() {
 
   const { isLoading, error } = useQuery({
     queryKey: ["mostrar permisos configuracion", datausuarios?.id],
-    queryFn: () => mostrarPermisosConfiguracion({ id_usuario: datausuarios.id }),
+    queryFn: () => mostrarPermisosConfiguracion({ id_usuario: datausuarios?.id }),
     enabled: !!datausuarios?.id,
     retry: 2,
     staleTime: 30000,

@@ -7,6 +7,7 @@ export const DashboardHeader = () => {
     <Container>
       <TextContainer>
         <Title>Dashboard</Title>
+        <Subtitle>Resumen de tu negocio</Subtitle>
       </TextContainer>
       <ActionsContainer>
         <DateRangeFilter />
@@ -14,24 +15,42 @@ export const DashboardHeader = () => {
     </Container>
   );
 };
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 16px;
+  
   @media ${Device.desktop} {
     flex-direction: row;
+    align-items: center;
   }
 `;
-const TextContainer = styled.div``;
-const Title = styled.h1`
-font-size: 44px;
-font-weight: bold;
-margin: 0;
+
+const TextContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 `;
+
+const Title = styled.h1`
+  font-size: 28px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+`;
+
+const Subtitle = styled.p`
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+`;
+
 const ActionsContainer = styled.div`
-  border: 2px solid ${({ theme }) => theme.bordercolorDash};
-  border-radius: 10px;
-  background-color: ${({ theme }) => theme.body};
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  overflow: hidden;
 `;

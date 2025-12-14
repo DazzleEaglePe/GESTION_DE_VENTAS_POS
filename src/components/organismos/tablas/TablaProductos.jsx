@@ -18,12 +18,20 @@ export function TablaProductos({
   SetopenRegistro,
   setdataSelect,
   setAccion,
+  modoSeleccion = false,
+  productosSeleccionados = [],
+  onToggleSeleccion = () => {},
 }) {
   const [pagina, setPagina] = useState(1);
   const [columnFilters] = useState([]);
 
   const { eliminarProductos, validarEliminarProducto } = useProductosStore();
   const { datausuarios } = useUsuariosStore();
+
+  // Verificar si un producto está seleccionado
+  const estaSeleccionado = (producto) => {
+    return productosSeleccionados.some(p => p.id === producto.id);
+  };
 
   async function eliminar(p) {
     if (p.nombre === "General") {
@@ -147,6 +155,28 @@ export function TablaProductos({
   }
 
   const columns = [
+    // Columna de checkbox (solo visible en modo selección)
+    ...(modoSeleccion ? [{
+      id: "seleccion",
+      header: "",
+      enableSorting: false,
+      cell: (info) => {
+        const producto = info.row.original;
+        const isGeneral = producto.nombre === "General";
+        const seleccionado = estaSeleccionado(producto);
+        
+        return (
+          <CheckboxCell 
+            onClick={() => !isGeneral && onToggleSeleccion(producto)}
+            $disabled={isGeneral}
+          >
+            <CheckboxWrapper $checked={seleccionado} $disabled={isGeneral}>
+              {seleccionado && <Icon icon="lucide:check" width="14" />}
+            </CheckboxWrapper>
+          </CheckboxCell>
+        );
+      },
+    }] : []),
     {
       accessorKey: "nombre",
       header: "Producto",
@@ -267,7 +297,16 @@ export function TablaProductos({
           </Thead>
           <Tbody>
             {table.getRowModel().rows.map((row) => (
-              <Tr key={row.id}>
+              <Tr 
+                key={row.id} 
+                $selected={modoSeleccion && estaSeleccionado(row.original)}
+                $selectable={modoSeleccion && row.original.nombre !== "General"}
+                onClick={() => {
+                  if (modoSeleccion && row.original.nombre !== "General") {
+                    onToggleSeleccion(row.original);
+                  }
+                }}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <Td key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -357,14 +396,16 @@ const Tbody = styled.tbody``;
 
 const Tr = styled.tr`
   border-bottom: 1px solid #f3f4f6;
-  transition: background 0.15s;
+  transition: all 0.15s;
+  cursor: ${({ $selectable }) => ($selectable ? "pointer" : "default")};
+  background: ${({ $selected }) => ($selected ? "#fef3c7" : "transparent")};
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: #fafafa;
+    background: ${({ $selected }) => ($selected ? "#fde68a" : "#fafafa")};
   }
 `;
 
@@ -377,6 +418,37 @@ const Td = styled.td`
   &:last-child {
     text-align: right;
     padding-right: 20px;
+  }
+`;
+
+// Checkbox components
+const CheckboxCell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
+  opacity: ${({ $disabled }) => ($disabled ? 0.4 : 1)};
+`;
+
+const CheckboxWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid ${({ $checked, $disabled }) => 
+    $disabled ? "#d1d5db" : $checked ? "#f59e0b" : "#d1d5db"};
+  border-radius: 5px;
+  background: ${({ $checked, $disabled }) => 
+    $disabled ? "#f3f4f6" : $checked ? "#f59e0b" : "#fff"};
+  transition: all 0.15s;
+
+  svg {
+    color: #fff;
+  }
+
+  &:hover {
+    border-color: ${({ $disabled }) => ($disabled ? "#d1d5db" : "#f59e0b")};
   }
 `;
 

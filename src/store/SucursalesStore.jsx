@@ -34,7 +34,7 @@ export const useSucursalesStore = create((set) => ({
     await EditarSucursal(p);
   },
   eliminarSucursal: async (p) => {
-    await EliminarSucursal(p);
+    return await EliminarSucursal(p);
   },
 
 }));

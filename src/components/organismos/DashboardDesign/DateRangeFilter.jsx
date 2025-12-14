@@ -108,7 +108,7 @@ export const DateRangeFilter = () => {
             setActiveRange("Rango")
           }}
         >
-          Limpiar filtro
+          Limpiar
         </TimeRangeButton>
 
 
@@ -116,80 +116,101 @@ export const DateRangeFilter = () => {
       {(activeRange === "30 días" ||
         activeRange === "12 meses" ||
         activeRange === "7 días") && (
-        <StyledRangePicker  format="YYYY-MM-DD" onChange={handleDateChange} value={dates} />
+        <StyledRangePicker format="YYYY-MM-DD" onChange={handleDateChange} value={dates} />
       )}
       {activeRange === "Por Día" && (
-        <StyledDatePicker   format="YYYY-MM-DD" onChange={handleSingleDateChange} />
+        <StyledDatePicker format="YYYY-MM-DD" onChange={handleSingleDateChange} />
       )}
     </Container>
   );
 };
+
 const Container = styled.div`
- display: flex;
- flex-direction: column;
- gap: 15px;
- margin: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
 `;
 
-const ButtonGroup = styled.div``;
+const ButtonGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
 
 const TimeRangeButton = styled.button`
-  color: ${({ theme }) => theme.text};
-  background-color: ${({ isActive, theme }) =>
-    isActive ? theme.bg : "transparent"};
+  color: ${({ isActive }) => isActive ? '#111' : '#6b7280'};
+  background-color: ${({ isActive }) => isActive ? '#f3f4f6' : 'transparent'};
   border: none;
   border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 13px;
   cursor: pointer;
-  font-weight:${({ isActive, theme }) =>
-    isActive ? "bold" : "none"};
+  font-weight: ${({ isActive }) => isActive ? '600' : '500'};
+  transition: all 0.15s ease;
+  
+  &:hover {
+    background-color: #f3f4f6;
+    color: #111;
+  }
 `;
+
 const StyledRangePicker = styled(RangePicker)`
- background-color: ${({ theme }) => theme.bg};
- border: 2px dashed ${({ theme }) => theme.body};
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  
   .ant-picker-input > input {
-    color: ${({ theme }) => theme.text};
-    font-weight: bold;
-  }
-  .ant-picker-input input::placeholder {
-    color: ${({ theme }) => theme.text};
-  }
- 
-  .ant-picker-suffix{
-    color: ${({ theme }) => theme.text};
-  }
-  &:hover{
-    background-color: ${({ theme }) => theme.body}; 
-  }
-  &:focus,
-  &.ant-picker-focused {
-    background-color: ${({ theme }) => theme.bg};
- 
+    color: #111;
+    font-weight: 500;
+    font-size: 13px;
   }
   
-
-`;
-const StyledDatePicker = styled(DatePicker)`
-background-color: ${({ theme }) => theme.bg};
- border: 2px dashed ${({ theme }) => theme.body};
-  .ant-picker-input > input {
-    color: ${({ theme }) => theme.text};
-    font-weight: bold;
-  }
   .ant-picker-input input::placeholder {
-    color: ${({ theme }) => theme.text};
+    color: #9ca3af;
   }
- 
-  .ant-picker-suffix{
-    color: ${({ theme }) => theme.text};
+  
+  .ant-picker-suffix {
+    color: #6b7280;
   }
-  &:hover{
-    background-color: ${({ theme }) => theme.body}; 
+  
+  &:hover {
+    border-color: #d1d5db;
   }
+  
   &:focus,
   &.ant-picker-focused {
-    background-color: ${({ theme }) => theme.bg};
- 
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  }
+`;
+
+const StyledDatePicker = styled(DatePicker)`
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  
+  .ant-picker-input > input {
+    color: #111;
+    font-weight: 500;
+    font-size: 13px;
+  }
+  
+  .ant-picker-input input::placeholder {
+    color: #9ca3af;
+  }
+  
+  .ant-picker-suffix {
+    color: #6b7280;
+  }
+  
+  &:hover {
+    border-color: #d1d5db;
+  }
+  
+  &:focus,
+  &.ant-picker-focused {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
   }
 `;

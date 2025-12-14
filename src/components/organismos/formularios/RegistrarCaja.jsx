@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useCajasStore } from "../../../store/CajasStore";
 import { useAsignacionCajaSucursalStore } from "../../../store/AsignacionCajaSucursalStore";
+import Swal from "sweetalert2";
 export function RegistrarCaja() {
   const queryClient = useQueryClient();
   const { insertarAsignacionSucursal } = useAsignacionCajaSucursalStore();
@@ -23,9 +24,30 @@ export function RegistrarCaja() {
   const { datausuarios } = useUsuariosStore();
   const {
     register,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
   } = useForm();
+
+  const handleCerrarConConfirmacion = async () => {
+    if (isDirty) {
+      const result = await Swal.fire({
+        title: '¿Salir sin guardar?',
+        text: 'Si sales ahora, perderás la información ingresada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#111',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Seguir editando',
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        setStateCaja(false);
+      }
+    } else {
+      setStateCaja(false);
+    }
+  };
   const insertar = async (data) => {
     if (accion === "Editar") {
       const p = {
@@ -78,7 +100,7 @@ export function RegistrarCaja() {
             </section>
 
             <section>
-              <BtnClose funcion={() => setStateCaja(false)} />
+              <BtnClose funcion={handleCerrarConConfirmacion} />
             </section>
           </div>
 

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 import { useProductosStore } from "../../../store/ProductosStore";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
@@ -13,6 +14,7 @@ import { useAlmacenesStore } from "../../../store/AlmacenesStore";
 import { useStockStore } from "../../../store/StockStore";
 import { ConvertirMinusculas } from "../../../index";
 import { SelectList } from "../../ui/lists/SelectList";
+import { ObtenerAtributos } from "../../../supabase/crudVariantes";
 
 export function RegistrarProductos({
   onClose,
@@ -26,6 +28,13 @@ export function RegistrarProductos({
   const [stateEnabledStock, setStateEnabledStock] = useState(false);
   const [randomCodeinterno, setRandomCodeinterno] = useState("");
   const [randomCodebarras, setRandomCodebarras] = useState("");
+  
+  // Estados para opciones avanzadas
+  const [tieneVariantes, setTieneVariantes] = useState(false);
+  const [manejaMultiprecios, setManejaMultiprecios] = useState(false);
+  const [manejaSeriales, setManejaSeriales] = useState(false);
+  const [esCompuesto, setEsCompuesto] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const { insertarProductos, editarProductos, generarCodigo, codigogenerado, refetchs } = useProductosStore();
   const { insertarStock, mostrarStockXAlmacenYProducto } = useStockStore();
@@ -33,6 +42,13 @@ export function RegistrarProductos({
   const { mostrarAlmacenesXSucursal, almacenSelectItem, setAlmacenSelectItem } = useAlmacenesStore();
   const { dataSucursales, selectSucursal, sucursalesItemSelect } = useSucursalesStore();
   const { datacategorias, selectCategoria, categoriaItemSelect } = useCategoriasStore();
+
+  // Query para obtener atributos disponibles
+  const { data: dataAtributos } = useQuery({
+    queryKey: ["obtener atributos", dataempresa?.id],
+    queryFn: () => ObtenerAtributos({ id_empresa: dataempresa?.id }),
+    enabled: !!dataempresa?.id,
+  });
 
   const { data: dataStockXAlmacenYProducto } = useQuery({
     queryKey: ["mostrar stock almacen y producto", { id_producto: dataSelect?.id, id_almacen: almacenSelectItem?.id }],
@@ -77,6 +93,10 @@ export function RegistrarProductos({
         _id_empresa: dataempresa.id,
         _sevende_por: sevendepor,
         _maneja_inventarios: stateInventarios,
+        _tiene_variantes: tieneVariantes,
+        _maneja_multiprecios: manejaMultiprecios,
+        _maneja_seriales: manejaSeriales,
+        _es_compuesto: esCompuesto,
       };
       await editarProductos(p);
       if (stateInventarios && !dataStockXAlmacenYProducto) {
@@ -99,7 +119,10 @@ export function RegistrarProductos({
         _id_empresa: dataempresa.id,
         _sevende_por: sevendepor,
         _maneja_inventarios: stateInventarios,
-        _maneja_multiprecios: false,
+        _tiene_variantes: tieneVariantes,
+        _maneja_multiprecios: manejaMultiprecios,
+        _maneja_seriales: manejaSeriales,
+        _es_compuesto: esCompuesto,
       };
       const id_producto_nuevo = await insertarProductos(p);
       if (stateInventarios) {
@@ -134,6 +157,16 @@ export function RegistrarProductos({
       setSevendepor(dataSelect.sevende_por);
       setStateInventarios(dataSelect.maneja_inventarios);
       setStateEnabledStock(dataSelect.maneja_inventarios);
+      // Cargar opciones avanzadas
+      setTieneVariantes(dataSelect.tiene_variantes || false);
+      setManejaMultiprecios(dataSelect.maneja_multiprecios || false);
+      setManejaSeriales(dataSelect.maneja_seriales || false);
+      setEsCompuesto(dataSelect.es_compuesto || false);
+      // Expandir opciones avanzadas si alguna está activa
+      if (dataSelect.tiene_variantes || dataSelect.maneja_multiprecios || 
+          dataSelect.maneja_seriales || dataSelect.es_compuesto) {
+        setShowAdvanced(true);
+      }
     }
   }, []);
 
@@ -146,11 +179,31 @@ export function RegistrarProductos({
     }
   }, [dataAlmacenes, setAlmacenSelectItem]);
 
+  // Función para confirmar cierre con cambios sin guardar
+  const handleCerrarConConfirmacion = async () => {
+    const result = await Swal.fire({
+      title: '¿Salir sin guardar?',
+      text: 'Si sales ahora, perderás la información ingresada.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#111',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Seguir editando',
+      reverseButtons: true,
+    });
+    
+    if (result.isConfirmed) {
+      refetchs();
+      onClose();
+    }
+  };
+
   // Early return after all hooks
   if (!state) return null;
 
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={handleCerrarConConfirmacion}>
       <Modal onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <Header>
@@ -158,7 +211,7 @@ export function RegistrarProductos({
             <Icon icon="lucide:package-plus" />
             {accion === "Editar" ? "Editar producto" : "Nuevo producto"}
           </HeaderTitle>
-          <CloseBtn onClick={() => { refetchs(); onClose(); }}>
+          <CloseBtn onClick={handleCerrarConConfirmacion}>
             <Icon icon="lucide:x" />
           </CloseBtn>
         </Header>
@@ -350,6 +403,140 @@ export function RegistrarProductos({
                 </StockGrid>
               )}
             </StockSection>
+          )}
+
+          {/* Opciones Avanzadas */}
+          <AdvancedToggle onClick={() => setShowAdvanced(!showAdvanced)}>
+            <AdvancedToggleInfo>
+              <Icon icon="lucide:settings-2" />
+              <div>
+                <span>Opciones avanzadas</span>
+                <small>Variantes, multiprecios, seriales, kits</small>
+              </div>
+            </AdvancedToggleInfo>
+            <ExpandIcon $expanded={showAdvanced}>
+              <Icon icon="lucide:chevron-down" />
+            </ExpandIcon>
+          </AdvancedToggle>
+
+          {showAdvanced && (
+            <AdvancedSection>
+              {/* Tiene Variantes */}
+              <AdvancedOption>
+                <AdvancedOptionInfo>
+                  <AdvancedIconWrapper $color="#8b5cf6">
+                    <Icon icon="lucide:palette" />
+                  </AdvancedIconWrapper>
+                  <div>
+                    <span>Tiene variantes</span>
+                    <small>Color, talla, tamaño, etc.</small>
+                  </div>
+                </AdvancedOptionInfo>
+                <Switch 
+                  $active={tieneVariantes} 
+                  onClick={() => setTieneVariantes(!tieneVariantes)}
+                >
+                  <SwitchKnob $active={tieneVariantes} />
+                </Switch>
+              </AdvancedOption>
+
+              {tieneVariantes && (
+                <AdvancedDetail>
+                  <Icon icon="lucide:info" />
+                  <span>
+                    Después de guardar, ve a <strong>Configuración → Variantes</strong> para 
+                    configurar los atributos y crear las variantes de este producto.
+                  </span>
+                </AdvancedDetail>
+              )}
+
+              {/* Maneja Multiprecios */}
+              <AdvancedOption>
+                <AdvancedOptionInfo>
+                  <AdvancedIconWrapper $color="#f59e0b">
+                    <Icon icon="lucide:tags" />
+                  </AdvancedIconWrapper>
+                  <div>
+                    <span>Precios por volumen</span>
+                    <small>Descuentos por cantidad</small>
+                  </div>
+                </AdvancedOptionInfo>
+                <Switch 
+                  $active={manejaMultiprecios} 
+                  onClick={() => setManejaMultiprecios(!manejaMultiprecios)}
+                >
+                  <SwitchKnob $active={manejaMultiprecios} />
+                </Switch>
+              </AdvancedOption>
+
+              {manejaMultiprecios && (
+                <AdvancedDetail>
+                  <Icon icon="lucide:info" />
+                  <span>
+                    Después de guardar, ve a <strong>Configuración → Multiprecios</strong> para 
+                    configurar los niveles de precio por cantidad.
+                  </span>
+                </AdvancedDetail>
+              )}
+
+              {/* Maneja Seriales */}
+              <AdvancedOption>
+                <AdvancedOptionInfo>
+                  <AdvancedIconWrapper $color="#10b981">
+                    <Icon icon="lucide:hash" />
+                  </AdvancedIconWrapper>
+                  <div>
+                    <span>Números de serie</span>
+                    <small>Control individual por serial</small>
+                  </div>
+                </AdvancedOptionInfo>
+                <Switch 
+                  $active={manejaSeriales} 
+                  onClick={() => setManejaSeriales(!manejaSeriales)}
+                >
+                  <SwitchKnob $active={manejaSeriales} />
+                </Switch>
+              </AdvancedOption>
+
+              {manejaSeriales && (
+                <AdvancedDetail>
+                  <Icon icon="lucide:info" />
+                  <span>
+                    Después de guardar, ve a <strong>Configuración → Seriales</strong> para 
+                    registrar los números de serie de este producto.
+                  </span>
+                </AdvancedDetail>
+              )}
+
+              {/* Es Compuesto (Kit) */}
+              <AdvancedOption>
+                <AdvancedOptionInfo>
+                  <AdvancedIconWrapper $color="#3b82f6">
+                    <Icon icon="lucide:package" />
+                  </AdvancedIconWrapper>
+                  <div>
+                    <span>Producto compuesto</span>
+                    <small>Kit o combo de productos</small>
+                  </div>
+                </AdvancedOptionInfo>
+                <Switch 
+                  $active={esCompuesto} 
+                  onClick={() => setEsCompuesto(!esCompuesto)}
+                >
+                  <SwitchKnob $active={esCompuesto} />
+                </Switch>
+              </AdvancedOption>
+
+              {esCompuesto && (
+                <AdvancedDetail>
+                  <Icon icon="lucide:info" />
+                  <span>
+                    Después de guardar, ve a <strong>Configuración → Productos Compuestos</strong> para 
+                    agregar los componentes de este kit.
+                  </span>
+                </AdvancedDetail>
+              )}
+            </AdvancedSection>
           )}
 
           {/* Actions */}
@@ -656,3 +843,121 @@ const SubmitBtn = styled.button`
   }
 `;
 
+// Estilos para Opciones Avanzadas
+const AdvancedToggle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+`;
+
+const AdvancedToggleInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  > svg { font-size: 22px; color: #64748b; }
+  
+  div {
+    span { display: block; font-size: 14px; font-weight: 500; color: #333; }
+    small { font-size: 12px; color: #94a3b8; }
+  }
+`;
+
+const ExpandIcon = styled.div`
+  color: #64748b;
+  transition: transform 0.2s;
+  transform: ${({ $expanded }) => ($expanded ? "rotate(180deg)" : "rotate(0)")};
+  
+  svg { font-size: 20px; }
+`;
+
+const AdvancedSection = styled.div`
+  padding: 16px;
+  background: #fafbfc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const AdvancedOption = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  transition: all 0.15s;
+  
+  &:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  }
+`;
+
+const AdvancedOptionInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  div {
+    span { display: block; font-size: 14px; font-weight: 500; color: #374151; }
+    small { font-size: 12px; color: #9ca3af; }
+  }
+`;
+
+const AdvancedIconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: ${({ $color }) => `${$color}15`};
+  border-radius: 8px;
+  
+  svg {
+    font-size: 18px;
+    color: ${({ $color }) => $color};
+  }
+`;
+
+const AdvancedDetail = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e40af;
+  margin-top: -4px;
+  margin-left: 20px;
+  
+  svg { 
+    font-size: 16px; 
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  span {
+    line-height: 1.4;
+    
+    strong {
+      color: #1d4ed8;
+    }
+  }
+`;

@@ -2615,8 +2615,10 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
+  -- Usar ON CONFLICT para evitar error si ya existe
   INSERT INTO almacen (id_sucursal, nombre, "default", delete)
-  VALUES (NEW.id, 'Almacen principal', true, false);
+  VALUES (NEW.id, 'Almacen principal', true, false)
+  ON CONFLICT (id_sucursal, nombre) DO NOTHING;
   RETURN NEW;
 END
 $$;
@@ -2670,8 +2672,7 @@ for item in
  values(new.nombre,new.direccion_fiscal,new.id,false)
  returning id into new_id_sucursal;
 
- insert into almacen(id_sucursal,delete,nombre)
- values(new_id_sucursal,false,'Almacen principal');
+ -- NOTA: El almacén lo crea automáticamente el trigger insertar_almacen_por_defecto()
 
  insert into caja (descripcion,id_sucursal,delete)
  values('Caja principal',new_id_sucursal,false)

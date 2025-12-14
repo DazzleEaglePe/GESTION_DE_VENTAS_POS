@@ -4,6 +4,8 @@ import {
   EliminarUsuarioAsignado,
   InsertarCredencialesUser,
   InsertarUsuarios,
+  RestaurarUsuario,
+  VerificarEmailUsuario,
 } from "../index";
 import { InsertarAsignacionCajaSucursal } from "../supabase/crudAsignacionCajaSucursal";
 import { usePermisosStore } from "./PermisosStore";
@@ -39,7 +41,15 @@ export const useUsuariosStore = create((set) => ({
     }
   },
   eliminarUsuarioAsignado: async (p) => {
-    await EliminarUsuarioAsignado(p);
+    return await EliminarUsuarioAsignado(p);
+  },
+  // Verificar si un email ya existe
+  verificarEmailUsuario: async (p) => {
+    return await VerificarEmailUsuario(p);
+  },
+  // Restaurar usuario inactivo
+  restaurarUsuario: async (p) => {
+    return await RestaurarUsuario(p);
   },
   insertarUsuario: async (p) => {
     const selectModules = usePermisosStore.getState().selectedModules || [];

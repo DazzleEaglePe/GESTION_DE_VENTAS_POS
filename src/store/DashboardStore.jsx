@@ -1,8 +1,8 @@
 import { create } from "zustand";
 
 export const useDashboardStore = create((set, get) => ({
-  fechaInicio: null,
-  fechaFin: null,
+  fechaInicio: "1900-01-01",
+  fechaFin: "9999-12-31",
   setRangoFechas: (inicio, fin) => set({ fechaInicio: inicio, fechaFin: fin }),
   limpiarFechas: () => set({ fechaInicio: null, fechaFin: null }),
   setFechasAnteriores: () => {

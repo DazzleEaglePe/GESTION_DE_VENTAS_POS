@@ -23,7 +23,7 @@ const { fechaInicio, fechaFin } = useDashboardStore();
         _fecha_inicio: fechaInicio,
         _fecha_fin: fechaFin,
       }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa?.id && !!fechaInicio && !!fechaFin,
   });
 };
 export const useMostrarCantidadDetalleVentaDashboardQuery = () => {
@@ -45,7 +45,7 @@ const { fechaInicio, fechaFin } = useDashboardStore();
         _fecha_inicio: fechaInicio,
         _fecha_fin: fechaFin,
       }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa?.id && !!fechaInicio && !!fechaFin,
   });
 };
 export const useMostrarCantidadDetalleVentaPeriodoAnteriorDashboardQuery = () => {
@@ -55,7 +55,7 @@ const { setFechasAnteriores } = useDashboardStore();
   const fechasAnteriores = setFechasAnteriores();
   return useQuery({
     queryKey: [
-      "mostrar cantidad detalle Ventas Dashboard",
+      "mostrar cantidad detalle Ventas Dashboard periodo anterior",
       {
         _id_empresa: dataempresa?.id,
         _fecha_inicio: fechasAnteriores?.fechaAnteriorInicio,
@@ -68,7 +68,7 @@ const { setFechasAnteriores } = useDashboardStore();
         _fecha_inicio: fechasAnteriores?.fechaAnteriorInicio,
         _fecha_fin: fechasAnteriores?.fechaAnteriorFin,
       }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa?.id && !!fechasAnteriores?.fechaAnteriorInicio && !!fechasAnteriores?.fechaAnteriorFin,
   });
 };
 export const useMostrarVentasDashboardPeriodoAnteriorQuery = () => {
@@ -92,7 +92,7 @@ const { fechaInicio, fechaFin,setFechasAnteriores } = useDashboardStore();
         _fecha_inicio:  fechasAnteriores?.fechaAnteriorInicio,
         _fecha_fin: fechasAnteriores?.fechaAnteriorFin,
       }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa?.id && !!fechasAnteriores?.fechaAnteriorInicio && !!fechasAnteriores?.fechaAnteriorFin,
     refetchOnWindowFocus:false
   });
 };
@@ -117,7 +117,7 @@ const { fechaInicio, fechaFin } = useDashboardStore();
         _fecha_inicio: fechaInicio,
         _fecha_fin: fechaFin,
       }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa?.id && !!fechaInicio && !!fechaFin,
     refetchOnWindowFocus:false
   });
 };

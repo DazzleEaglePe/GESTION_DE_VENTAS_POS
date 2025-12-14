@@ -1,7 +1,38 @@
 
 import { supabase } from "../index";
 const tabla = "productos";
+
 export async function InsertarProductos(p) {
+  // Si incluye campos de opciones avanzadas, insertar directamente
+  if (p._tiene_variantes !== undefined || p._maneja_multiprecios !== undefined || 
+      p._maneja_seriales !== undefined || p._es_compuesto !== undefined) {
+    const { data, error } = await supabase
+      .from(tabla)
+      .insert({
+        nombre: p._nombre,
+        precio_venta: p._precio_venta,
+        precio_compra: p._precio_compra,
+        id_categoria: p._id_categoria,
+        codigo_barras: p._codigo_barras,
+        codigo_interno: p._codigo_interno,
+        id_empresa: p._id_empresa,
+        sevende_por: p._sevende_por,
+        maneja_inventarios: p._maneja_inventarios,
+        tiene_variantes: p._tiene_variantes || false,
+        maneja_multiprecios: p._maneja_multiprecios || false,
+        maneja_seriales: p._maneja_seriales || false,
+        es_compuesto: p._es_compuesto || false,
+      })
+      .select("id")
+      .single();
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data.id;
+  }
+  
+  // Sino, usar el RPC original
   const { error, data } = await supabase.rpc("insertarproductos", p);
   if (error) {
     throw new Error(error.message);
@@ -123,6 +154,34 @@ export async function EliminarProductos(p) {
 }
 
 export async function EditarProductos(p) {
+  // Si incluye campos de opciones avanzadas, usar update directo
+  if (p._tiene_variantes !== undefined || p._maneja_multiprecios !== undefined || 
+      p._maneja_seriales !== undefined || p._es_compuesto !== undefined) {
+    const { error } = await supabase
+      .from(tabla)
+      .update({
+        nombre: p._nombre,
+        precio_venta: p._precio_venta,
+        precio_compra: p._precio_compra,
+        id_categoria: p._id_categoria,
+        codigo_barras: p._codigo_barras,
+        codigo_interno: p._codigo_interno,
+        sevende_por: p._sevende_por,
+        maneja_inventarios: p._maneja_inventarios,
+        tiene_variantes: p._tiene_variantes || false,
+        maneja_multiprecios: p._maneja_multiprecios || false,
+        maneja_seriales: p._maneja_seriales || false,
+        es_compuesto: p._es_compuesto || false,
+      })
+      .eq("id", p._id);
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    return;
+  }
+  
+  // Sino, usar el RPC original
   const { error } = await supabase.rpc("editarproductos", p);
   if (error) {
     throw new Error(error.message);

@@ -14,6 +14,7 @@ import { useEmpresaStore } from "../../../store/EmpresaStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMetodosPagoStore } from "../../../store/MetodosPagoStore";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 
 export function RegistrarMetodosPago({
   onClose,
@@ -30,9 +31,30 @@ export function RegistrarMetodosPago({
   const queryClient = useQueryClient();
   const {
     register,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
   } = useForm();
+
+  const handleCerrarConConfirmacion = async () => {
+    if (isDirty || file.length > 0) {
+      const result = await Swal.fire({
+        title: '¿Salir sin guardar?',
+        text: 'Si sales ahora, perderás la información ingresada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#111',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Seguir editando',
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
   const { isPending, mutate: doInsertar } = useMutation({
     mutationFn: insertar,
     mutationKey: "insertar metodos pago",
@@ -106,7 +128,7 @@ export function RegistrarMetodosPago({
             </section>
 
             <section>
-              <span onClick={onClose}>x</span>
+              <span onClick={handleCerrarConConfirmacion}>x</span>
             </section>
           </div>
           <PictureContainer>

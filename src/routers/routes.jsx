@@ -25,6 +25,15 @@ import { ConfiguracionTicket } from "../pages/ConfiguracionTicket";
 import { MiPerfil } from "../pages/MiPerfil";
 import { SerializacionComprobantes } from "../pages/SerializacionComprobantes";
 import { Reportes } from "../pages/Reportes";
+import { ElementosEliminados } from "../pages/ElementosEliminados";
+import { Auditoria } from "../pages/Auditoria";
+import { HistorialPrecios } from "../pages/HistorialPrecios";
+import { Transferencias } from "../pages/Transferencias";
+// Fase 3 - Mejoras/Diferenciación
+import { Variantes } from "../pages/Variantes";
+import { Multiprecios } from "../pages/Multiprecios";
+import { ProductosCompuestos } from "../pages/ProductosCompuestos";
+import { Seriales } from "../pages/Seriales";
 
 export function MyRoutes() {
   return (
@@ -229,6 +238,87 @@ export function MyRoutes() {
           <Layout>
             <ProtectedRoute accessBy="authenticated">
               <Almacenes />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/eliminados"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <ElementosEliminados />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/auditoria"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <Auditoria />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/historial-precios"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <HistorialPrecios />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/transferencias"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <Transferencias />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      {/* Fase 3 - Mejoras/Diferenciación */}
+      <Route
+        path="/configuracion/variantes"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <Variantes />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/multiprecios"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <Multiprecios />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/productos-compuestos"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <ProductosCompuestos />
+            </ProtectedRoute>
+          </Layout>
+        }
+      />
+      <Route
+        path="/configuracion/seriales"
+        element={
+          <Layout>
+            <ProtectedRoute accessBy="authenticated">
+              <Seriales />
             </ProtectedRoute>
           </Layout>
         }

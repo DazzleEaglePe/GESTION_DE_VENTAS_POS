@@ -3,22 +3,162 @@ import { useAuthStore, Generarcodigo } from "../../index";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { toast, Toaster } from "sonner";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import { NavLink } from "react-router-dom";
+
+// Constantes de seguridad
+const MAX_LOGIN_ATTEMPTS = 3;
+const INITIAL_LOCKOUT_TIME = 30; // segundos
+const LOCKOUT_MULTIPLIER = 2; // duplica el tiempo con cada bloqueo
+const STORAGE_KEY = "login_security_state";
+
+// Funciones helper para localStorage
+const getStoredSecurityState = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const state = JSON.parse(stored);
+      // Verificar si el bloqueo ya expiró
+      if (state.lockoutUntil && new Date(state.lockoutUntil) < new Date()) {
+        return { attempts: 0, lockoutUntil: null, lockoutCount: state.lockoutCount || 0 };
+      }
+      return state;
+    }
+  } catch (e) {
+    console.error("Error reading security state:", e);
+  }
+  return { attempts: 0, lockoutUntil: null, lockoutCount: 0 };
+};
+
+const setStoredSecurityState = (state) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Error saving security state:", e);
+  }
+};
 
 export function LoginTemplate() {
   const [mode, setMode] = useState(null); // null, 'admin', 'employee'
   const [isLoading, setIsLoading] = useState(false);
   const { loginGoogle, loginEmail, crearUserYLogin } = useAuthStore();
 
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  // Estados de seguridad
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutEndTime, setLockoutEndTime] = useState(null);
+  const [remainingTime, setRemainingTime] = useState(0);
+  const [lockoutCount, setLockoutCount] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Cargar estado de seguridad al montar
+  useEffect(() => {
+    const storedState = getStoredSecurityState();
+    setLoginAttempts(storedState.attempts || 0);
+    setLockoutCount(storedState.lockoutCount || 0);
+    
+    if (storedState.lockoutUntil) {
+      const lockoutDate = new Date(storedState.lockoutUntil);
+      if (lockoutDate > new Date()) {
+        setIsLocked(true);
+        setLockoutEndTime(lockoutDate);
+      }
+    }
+  }, []);
+
+  // Temporizador de bloqueo
+  useEffect(() => {
+    let interval;
+    if (isLocked && lockoutEndTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const remaining = Math.ceil((lockoutEndTime - now) / 1000);
+        
+        if (remaining <= 0) {
+          setIsLocked(false);
+          setLockoutEndTime(null);
+          setRemainingTime(0);
+          setLoginAttempts(0);
+          setStoredSecurityState({ 
+            attempts: 0, 
+            lockoutUntil: null, 
+            lockoutCount 
+          });
+          clearInterval(interval);
+        } else {
+          setRemainingTime(remaining);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isLocked, lockoutEndTime, lockoutCount]);
+
+  // Función para activar bloqueo
+  const activateLockout = useCallback(() => {
+    const newLockoutCount = lockoutCount + 1;
+    const lockoutDuration = INITIAL_LOCKOUT_TIME * Math.pow(LOCKOUT_MULTIPLIER, newLockoutCount - 1);
+    const lockoutEnd = new Date(Date.now() + lockoutDuration * 1000);
+    
+    setIsLocked(true);
+    setLockoutEndTime(lockoutEnd);
+    setRemainingTime(lockoutDuration);
+    setLockoutCount(newLockoutCount);
+    
+    setStoredSecurityState({
+      attempts: MAX_LOGIN_ATTEMPTS,
+      lockoutUntil: lockoutEnd.toISOString(),
+      lockoutCount: newLockoutCount
+    });
+
+    toast.error(
+      `Cuenta bloqueada temporalmente por ${lockoutDuration} segundos debido a múltiples intentos fallidos`,
+      { duration: 5000 }
+    );
+  }, [lockoutCount]);
+
+  // Función para manejar intento fallido
+  const handleFailedAttempt = useCallback(() => {
+    const newAttempts = loginAttempts + 1;
+    setLoginAttempts(newAttempts);
+    
+    if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+      activateLockout();
+    } else {
+      const remaining = MAX_LOGIN_ATTEMPTS - newAttempts;
+      setStoredSecurityState({ 
+        attempts: newAttempts, 
+        lockoutUntil: null, 
+        lockoutCount 
+      });
+      toast.warning(
+        `Credenciales incorrectas. Te quedan ${remaining} intento${remaining !== 1 ? 's' : ''}`
+      );
+    }
+  }, [loginAttempts, lockoutCount, activateLockout]);
+
+  // Función para resetear intentos en login exitoso
+  const handleSuccessfulLogin = useCallback(() => {
+    setLoginAttempts(0);
+    setLockoutCount(0);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  const { register, handleSubmit, formState: { errors }, watch } = useForm({
+    mode: "onChange"
+  });
+
+  const watchedEmail = watch("email");
+  const watchedPassword = watch("password");
 
   const { mutate: loginMutate, isPending: isLoginPending } = useMutation({
     mutationKey: ["login-email"],
     mutationFn: loginEmail,
+    onSuccess: () => {
+      handleSuccessfulLogin();
+    },
     onError: (error) => {
-      toast.error(error.message);
+      handleFailedAttempt();
     },
   });
 
@@ -31,6 +171,10 @@ export function LoginTemplate() {
   });
 
   const handleEmailLogin = (data) => {
+    if (isLocked) {
+      toast.error(`Por favor espera ${remainingTime} segundos antes de intentar nuevamente`);
+      return;
+    }
     loginMutate({ email: data.email, password: data.password });
   };
 
@@ -116,40 +260,117 @@ export function LoginTemplate() {
                 Modo Empleado
               </ModeBadge>
 
+              {/* Alerta de bloqueo */}
+              {isLocked && (
+                <LockoutAlert>
+                  <LockoutIcon>
+                    <Icon icon="lucide:shield-alert" />
+                  </LockoutIcon>
+                  <LockoutContent>
+                    <LockoutTitle>Cuenta bloqueada temporalmente</LockoutTitle>
+                    <LockoutMessage>
+                      Demasiados intentos fallidos. Podrás intentar nuevamente en:
+                    </LockoutMessage>
+                    <LockoutTimer>
+                      <Icon icon="lucide:clock" />
+                      {Math.floor(remainingTime / 60)}:{String(remainingTime % 60).padStart(2, '0')}
+                    </LockoutTimer>
+                  </LockoutContent>
+                </LockoutAlert>
+              )}
+
+              {/* Indicador de intentos restantes */}
+              {!isLocked && loginAttempts > 0 && (
+                <AttemptsWarning>
+                  <Icon icon="lucide:alert-triangle" />
+                  <span>
+                    {MAX_LOGIN_ATTEMPTS - loginAttempts} intento{MAX_LOGIN_ATTEMPTS - loginAttempts !== 1 ? 's' : ''} restante{MAX_LOGIN_ATTEMPTS - loginAttempts !== 1 ? 's' : ''}
+                  </span>
+                </AttemptsWarning>
+              )}
+
               <Form onSubmit={handleSubmit(handleEmailLogin)}>
                 <InputGroup>
                   <InputLabel>Correo electrónico</InputLabel>
-                  <InputWrapper>
+                  <InputWrapper $hasError={!!errors.email}>
                     <InputIcon>
                       <Icon icon="lucide:mail" />
                     </InputIcon>
                     <Input
                       type="email"
                       placeholder="tu@email.com"
-                      {...register("email", { required: "El correo es requerido" })}
+                      disabled={isLocked}
+                      autoComplete="email"
+                      {...register("email", { 
+                        required: "El correo es requerido",
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: "Ingresa un correo electrónico válido"
+                        },
+                        maxLength: {
+                          value: 254,
+                          message: "El correo no puede exceder 254 caracteres"
+                        }
+                      })}
                     />
+                    {watchedEmail && !errors.email && (
+                      <ValidationIcon $valid>
+                        <Icon icon="lucide:check-circle" />
+                      </ValidationIcon>
+                    )}
                   </InputWrapper>
                   {errors.email && <InputError>{errors.email.message}</InputError>}
                 </InputGroup>
 
                 <InputGroup>
                   <InputLabel>Contraseña</InputLabel>
-                  <InputWrapper>
+                  <InputWrapper $hasError={!!errors.password}>
                     <InputIcon>
                       <Icon icon="lucide:lock" />
                     </InputIcon>
                     <Input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
-                      {...register("password", { required: "La contraseña es requerida" })}
+                      disabled={isLocked}
+                      autoComplete="current-password"
+                      {...register("password", { 
+                        required: "La contraseña es requerida",
+                        minLength: {
+                          value: 6,
+                          message: "La contraseña debe tener al menos 6 caracteres"
+                        },
+                        maxLength: {
+                          value: 128,
+                          message: "La contraseña no puede exceder 128 caracteres"
+                        }
+                      })}
                     />
+                    <PasswordToggle 
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLocked}
+                      tabIndex={-1}
+                    >
+                      <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} />
+                    </PasswordToggle>
                   </InputWrapper>
                   {errors.password && <InputError>{errors.password.message}</InputError>}
                 </InputGroup>
 
-                <PrimaryButton type="submit" disabled={isLoginPending}>
+                <PrimaryButton 
+                  type="submit" 
+                  disabled={isLoginPending || isLocked || !watchedEmail || !watchedPassword}
+                >
                   {isLoginPending ? (
-                    <Icon icon="lucide:loader-2" className="spin" />
+                    <>
+                      <Icon icon="lucide:loader-2" className="spin" />
+                      Verificando...
+                    </>
+                  ) : isLocked ? (
+                    <>
+                      <Icon icon="lucide:lock" />
+                      Bloqueado
+                    </>
                   ) : (
                     <>
                       Iniciar Sesión
@@ -158,6 +379,12 @@ export function LoginTemplate() {
                   )}
                 </PrimaryButton>
               </Form>
+
+              {/* Información de seguridad */}
+              <SecurityInfo>
+                <Icon icon="lucide:shield-check" />
+                <span>Conexión segura · Los datos están encriptados</span>
+              </SecurityInfo>
             </FormPanel>
           )}
 
@@ -422,6 +649,13 @@ const InputWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
+
+  ${props => props.$hasError && `
+    input {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+  `}
 `;
 
 const InputIcon = styled.div`
@@ -430,11 +664,12 @@ const InputIcon = styled.div`
   font-size: 18px;
   color: #666;
   display: flex;
+  z-index: 1;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 14px 14px 14px 44px;
+  padding: 14px 44px 14px 44px;
   font-size: 15px;
   border: 2px solid #e5e5e5;
   border-radius: 12px;
@@ -451,6 +686,12 @@ const Input = styled.input`
     border-color: #111;
     background: #fff;
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f5f5f5;
   }
 `;
 
@@ -593,4 +834,140 @@ const FooterInfo = styled.div`
   margin-top: 32px;
   font-size: 13px;
   color: rgba(255,255,255,0.5);
+`;
+
+// Componentes de seguridad
+const LockoutAlert = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  animation: shake 0.5s ease-in-out;
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  }
+`;
+
+const LockoutIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  background: #dc2626;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+  flex-shrink: 0;
+`;
+
+const LockoutContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const LockoutTitle = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: #dc2626;
+`;
+
+const LockoutMessage = styled.span`
+  font-size: 13px;
+  color: #7f1d1d;
+`;
+
+const LockoutTimer = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #dc2626;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  width: fit-content;
+
+  svg {
+    font-size: 16px;
+  }
+`;
+
+const AttemptsWarning = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #92400e;
+
+  svg {
+    font-size: 18px;
+    color: #f59e0b;
+  }
+`;
+
+const ValidationIcon = styled.div`
+  position: absolute;
+  right: 14px;
+  font-size: 18px;
+  display: flex;
+  color: ${props => props.$valid ? '#22c55e' : '#ef4444'};
+  transition: all 0.2s;
+`;
+
+const PasswordToggle = styled.button`
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+  z-index: 1;
+
+  &:hover:not(:disabled) {
+    color: #111;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const SecurityInfo = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: #888;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
+
+  svg {
+    font-size: 14px;
+    color: #22c55e;
+  }
 `;

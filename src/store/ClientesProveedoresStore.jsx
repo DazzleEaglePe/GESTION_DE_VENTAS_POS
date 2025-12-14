@@ -29,10 +29,13 @@ export const useClientesProveedoresStore = create((set, get) => ({
     set(mostrarCliPro(parametros));
   },
   eliminarCliPro: async (p) => {
-    await EliminarClientesProveedores(p);
-    const { mostrarCliPro } = get();
-    const { parametros } = get();
-    set(mostrarCliPro(parametros));
+    const resultado = await EliminarClientesProveedores(p);
+    if (resultado?.exito) {
+      const { mostrarCliPro } = get();
+      const { parametros } = get();
+      set(mostrarCliPro(parametros));
+    }
+    return resultado;
   },
   editarCliPro: async (p, fileold, filenew) => {
     await EditarClientesProveedores(p, fileold, filenew);

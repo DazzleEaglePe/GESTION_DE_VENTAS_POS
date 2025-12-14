@@ -4,40 +4,58 @@ import styled from "styled-components";
 
 export const SelectList = ({
   data, 
-  placeholder, 
+  placeholder = "Seleccionar...", 
   onSelect, 
-  displayField = "nombre",itemSelect
+  displayField = "nombre",
+  itemSelect,
+  isLoading = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState(itemSelect?.[displayField] || "Select an option");
 
-  const toggleDropdown = () => setIsOpen(!isOpen);
+  const toggleDropdown = () => {
+    if (!isLoading) setIsOpen(!isOpen);
+  };
   const handleSelect = (item) => {
      setSelected(item);
     setIsOpen(false);
     onSelect(item);
   };
 
+  // Determinar qué mostrar en el header
+  const displayValue = itemSelect?.[displayField];
+  const showPlaceholder = !displayValue;
+
   return (
     <DropdownContainer>
-      <DropdownHeader onClick={toggleDropdown}>
-        {itemSelect?.[displayField]}
+      <DropdownHeader onClick={toggleDropdown} $hasValue={!showPlaceholder} $isLoading={isLoading}>
+        {isLoading ? (
+          <PlaceholderText>Cargando...</PlaceholderText>
+        ) : showPlaceholder ? (
+          <PlaceholderText>{placeholder}</PlaceholderText>
+        ) : (
+          displayValue
+        )}
         <Arrow isOpen={isOpen}><Icon icon="iconamoon:arrow-up-2-bold" width="24" height="24" /></Arrow>
       </DropdownHeader>
       {isOpen && (
         <DropdownList>
-          {data?.map((item, index) => {
-            return (
-              <DropdownItem
-                key={index}
-                onClick={() => handleSelect(item)}
-                isSelected={item === selected}
-              >
-                {item === selected && <CheckMark>✔</CheckMark>}
-                {item?.[displayField]}
-              </DropdownItem>
-            );
-          })}
+          {!data || data.length === 0 ? (
+            <EmptyMessage>No hay opciones disponibles</EmptyMessage>
+          ) : (
+            data?.map((item, index) => {
+              return (
+                <DropdownItem
+                  key={index}
+                  onClick={() => handleSelect(item)}
+                  isSelected={item === selected}
+                >
+                  {item === selected && <CheckMark>✔</CheckMark>}
+                  {item?.[displayField]}
+                </DropdownItem>
+              );
+            })
+          )}
         </DropdownList>
       )}
     </DropdownContainer>
@@ -57,11 +75,24 @@ const DropdownHeader = styled.div`
   padding: 8px 15px;
   border: 1px solid #333;
   border-radius: 5px;
-  cursor: pointer;
+  cursor: ${({ $isLoading }) => $isLoading ? 'wait' : 'pointer'};
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap:10px;
+  opacity: ${({ $isLoading }) => $isLoading ? 0.7 : 1};
+`;
+
+const PlaceholderText = styled.span`
+  color: #999;
+  font-style: normal;
+`;
+
+const EmptyMessage = styled.div`
+  padding: 12px 15px;
+  color: #999;
+  text-align: center;
+  font-size: 13px;
 `;
 
 const Arrow = styled.span`

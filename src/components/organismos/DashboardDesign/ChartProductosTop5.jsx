@@ -4,29 +4,26 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
-import { FormatearNumeroDinero } from "../../../utils/Conversiones";
-import { useVentasStore } from "../../../store/VentasStore";
-import { Icon } from "@iconify/react/dist/iconify.js";
-import { useThemeStore } from "../../../store/ThemeStore";
 import { useDetalleVentasStore } from "../../../store/DetalleVentasStore";
 import { useQuery } from "@tanstack/react-query";
 import { BarLoader } from "react-spinners";
 import { useDashboardStore } from "../../../store/DashboardStore";
 import { Lottieanimacion } from "../../atomos/Lottieanimacion";
-import animacionvacio from "../../../assets/vacioanimacion.json"
+import animacionvacio from "../../../assets/vacioanimacion.json";
+import { Icon } from "@iconify/react/dist/iconify.js";
+
+const COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899'];
+
 export const ChartProductosTop5 = () => {
   const { dataempresa } = useEmpresaStore();
-  const { porcentajeCambio } = useVentasStore();
-  const { themeStyle } = useThemeStore();
   const { fechaInicio, fechaFin } = useDashboardStore();
-  const isPositive = porcentajeCambio > 0;
-  const isNeutral = porcentajeCambio === 0;
   const { mostrartop5productosmasvendidosxcantidad } = useDetalleVentasStore();
+  
   const { data, isLoading, error } = useQuery({
     queryKey: [
       "mostrar top5 productos mas vendidos xcantidad",
@@ -44,153 +41,252 @@ export const ChartProductosTop5 = () => {
       }),
     enabled: !!dataempresa,
   });
-  if (isLoading) return <BarLoader color="#6d6d6d" />;
-  if (error) return <span>error...{error.message} </span>;
+  
+  if (isLoading) {
+    return (
+      <Container>
+        <LoadingWrapper>
+          <BarLoader color="#6366f1" />
+        </LoadingWrapper>
+      </Container>
+    );
+  }
+  
+  if (error) return <Container><ErrorText>Error: {error.message}</ErrorText></Container>;
+  
   return (
     <Container>
       <Header>
-        <Title>TOP 5</Title>
-        <Subtitle>Productos por cantidad vendida</Subtitle>
+        <HeaderIcon>
+          <Icon icon="lucide:trophy" />
+        </HeaderIcon>
+        <HeaderText>
+          <Title>Top 5 Productos</Title>
+          <Subtitle>Por cantidad vendida</Subtitle>
+        </HeaderText>
       </Header>
-      {
-        data && data.length >0 ?(<>
-        {data?.map((item, index) => {
-        return (
-          <Row key={index}>
-            <NameContent>
-              <Name>{item.nombre_producto} </Name>
-            </NameContent>
-            <Stats>
-              <Value>{item.total_vendido} </Value>
-              <Percentage>{item.porcentaje} %</Percentage>
-            </Stats>
-          </Row>
-        );
-      })}
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          width={500}
-          height={400}
-          data={data}
-          margin={{
-            top: 10,
-            right: 0,
-            left: 0,
-            bottom: 0,
-          }}
-        >
-          <XAxis
-            dataKey="nombre_producto"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 12, fill: "#9CA3AF" }}
-          />
-          <YAxis hide />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar
-            strokeWidth={6}
-            type="monotone"
-            dataKey="total_vendido"
-            fill={themeStyle.text}
-            activeDot={{ r: 6 }}
-            fillOpacity={1}
-            radius={[10, 10, 0, 0]}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-        </>):(<Lottieanimacion animacion={animacionvacio} alto="200" ancho="200"/>)
-      }
       
+      {data && data.length > 0 ? (
+        <>
+          <ProductList>
+            {data?.map((item, index) => (
+              <ProductRow key={index}>
+                <RankBadge style={{ background: COLORS[index] }}>
+                  {index + 1}
+                </RankBadge>
+                <ProductInfo>
+                  <ProductName>{item.nombre_producto}</ProductName>
+                  <ProductStats>
+                    <StatValue>{item.total_vendido} uds</StatValue>
+                    <StatPercent>{item.porcentaje}%</StatPercent>
+                  </ProductStats>
+                </ProductInfo>
+              </ProductRow>
+            ))}
+          </ProductList>
+          
+          <ChartWrapper>
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart
+                data={data}
+                layout="vertical"
+                margin={{ top: 0, right: 20, left: 0, bottom: 0 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="nombre_producto" hide />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar
+                  dataKey="total_vendido"
+                  radius={[0, 6, 6, 0]}
+                  barSize={20}
+                >
+                  {data?.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartWrapper>
+        </>
+      ) : (
+        <EmptyState>
+          <Lottieanimacion animacion={animacionvacio} alto="150" ancho="150" />
+          <EmptyText>Sin datos en este período</EmptyText>
+        </EmptyState>
+      )}
     </Container>
   );
 };
+
 const CustomTooltip = ({ active, payload, label }) => {
- 
   if (active && payload && payload.length) {
     return (
       <TooltipContainer>
-        <Date>{label} </Date>
-        <Value>cant: {payload[0].value}</Value>
+        <TooltipLabel>{payload[0].payload.nombre_producto}</TooltipLabel>
+        <TooltipValue>{payload[0].value} unidades</TooltipValue>
       </TooltipContainer>
     );
   }
+  return null;
 };
-const Stats = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-`;
-const Value = styled.span`
-  font-size: 14px;
-  font-weight: bold;
-  color: ${({ theme }) => theme.colortitlecard};
-`;
-const Percentage = styled.span`
-  font-size: 12px;
-  font-weight: bold;
-  color: #828282;
-`;
 
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 8px;
-`;
-const NameContent = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 2;
-`;
-const Name = styled.span`
-  font-size: 12px;
-  font-weight: 500;
-  color: ${({ theme }) => theme.text};
-`;
-
-const Subtitle = styled.p`
-  font-size: 18px;
-  color: #6b7280;
-  margin: 5px 0 0;
-`;
 const Container = styled.div`
   padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
-const TooltipContainer = styled.div`
-  background: ${({ theme }) => theme.bg};
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  box-shadow: ${({ theme }) => theme.boxshadow};
+
+const LoadingWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 200px;
 `;
-const Date = styled.div`
+
+const ErrorText = styled.span`
+  color: #dc2626;
   font-size: 14px;
 `;
 
 const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 20px;
-  text-align: center;
+`;
+
+const HeaderIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef3c7;
+  color: #d97706;
+  border-radius: 10px;
+  font-size: 20px;
+`;
+
+const HeaderText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 `;
 
 const Title = styled.h3`
-  font-size: 25px;
-  font-weight: bold;
-  color: ${({ theme }) => theme.text};
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
   margin: 0;
 `;
-const MainInfo = styled.div`
-  margin: 20px 0;
+
+const Subtitle = styled.p`
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
 `;
-const Revenue = styled.div`
-  font-size: 24px;
-  font-weight: bold;
-  color: ${({ theme }) => theme.text};
+
+const ProductList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
 `;
-const Change = styled.div`
+
+const ProductRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 5px;
+  gap: 12px;
+`;
+
+const RankBadge = styled.div`
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+`;
+
+const ProductInfo = styled.div`
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+`;
+
+const ProductName = styled.span`
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+`;
+
+const ProductStats = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const StatValue = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+`;
+
+const StatPercent = styled.span`
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+`;
+
+const ChartWrapper = styled.div`
+  margin-top: auto;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 8px;
+`;
+
+const EmptyText = styled.span`
+  font-size: 13px;
+  color: #6b7280;
+`;
+
+const TooltipContainer = styled.div`
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+`;
+
+const TooltipLabel = styled.div`
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 2px;
+`;
+
+const TooltipValue = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
 `;

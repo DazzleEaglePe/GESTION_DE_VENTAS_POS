@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { BtnClose } from "../../ui/buttons/BtnClose";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 export function RegistrarSucursal() {
   const queryClient = useQueryClient();
   const {
@@ -23,9 +24,30 @@ export function RegistrarSucursal() {
   const { dataempresa } = useEmpresaStore();
   const {
     register,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
   } = useForm();
+
+  const handleCerrarConConfirmacion = async () => {
+    if (isDirty) {
+      const result = await Swal.fire({
+        title: '¿Salir sin guardar?',
+        text: 'Si sales ahora, perderás la información ingresada.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#111',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, salir',
+        cancelButtonText: 'Seguir editando',
+        reverseButtons: true,
+      });
+      if (result.isConfirmed) {
+        setStateSucursal(false);
+      }
+    } else {
+      setStateSucursal(false);
+    }
+  };
   const insertar = async (data) => {
     if (accion === "Editar") {
       const p = {
@@ -78,7 +100,7 @@ export function RegistrarSucursal() {
             </section>
 
             <section>
-              <BtnClose funcion={() => setStateSucursal(false)} />
+              <BtnClose funcion={handleCerrarConConfirmacion} />
             </section>
           </div>
 

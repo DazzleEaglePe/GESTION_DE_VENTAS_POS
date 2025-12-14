@@ -4,7 +4,8 @@ export async function MostrarMetodosPago(p) {
   const { data } = await supabase
     .from(tabla)
     .select()
-    .eq("id_empresa", p.id_empresa);
+    .eq("id_empresa", p.id_empresa)
+    .eq("activo", true);
   return data;
 }
 //manejo de icono en forma de imagen
@@ -80,13 +81,39 @@ export async function EditarMetodosPago(p, fileold, filenew) {
   }
 }
 
+// Soft Delete para métodos de pago
 export async function EliminarMetodosPago(p) {
-  const { error } = await supabase.from(tabla).delete().eq("id", p.id);
+  const { data, error } = await supabase.rpc("soft_delete_metodo_pago", {
+    p_id: p.id,
+    p_usuario_id: p.id_usuario || null,
+  });
+  
   if (error) {
     throw new Error(error.message);
   }
-  if (p.icono != "-") {
-    const ruta = "metodospago/" + p.id;
-    await supabase.storage.from("imagenes").remove([ruta]);
+  
+  // La función retorna JSONB con success, error/message
+  if (!data.success) {
+    return {
+      exito: false,
+      mensaje: data.error,
+    };
+  }
+  
+  return {
+    exito: true,
+    mensaje: data.message,
+  };
+}
+
+// Restaurar método de pago eliminado
+export async function RestaurarMetodoPago(p) {
+  const { error } = await supabase.rpc("restaurar_registro", {
+    p_tabla: tabla,
+    p_id: p.id,
+  });
+  
+  if (error) {
+    throw new Error(error.message);
   }
 }

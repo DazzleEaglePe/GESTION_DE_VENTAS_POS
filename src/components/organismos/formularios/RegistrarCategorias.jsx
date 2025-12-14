@@ -6,6 +6,7 @@ import { CirclePicker } from "react-color";
 import { useMutation } from "@tanstack/react-query";
 import { useCategoriasStore, ConvertirCapitalize } from "../../../index";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
+import Swal from "sweetalert2";
 
 export function RegistrarCategorias({
   onClose,
@@ -108,8 +109,24 @@ export function RegistrarCategorias({
     }
   }, [accion, dataSelect]);
 
+  // Función para confirmar cierre
+  const handleCerrarConConfirmacion = async () => {
+    const result = await Swal.fire({
+      title: '¿Salir sin guardar?',
+      text: 'Si sales ahora, perderás la información ingresada.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#111',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Seguir editando',
+      reverseButtons: true,
+    });
+    if (result.isConfirmed) onClose();
+  };
+
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={handleCerrarConConfirmacion}>
       <Modal onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <ModalHeader>
@@ -128,7 +145,7 @@ export function RegistrarCategorias({
               </ModalSubtitle>
             </div>
           </HeaderInfo>
-          <CloseButton onClick={onClose}>
+          <CloseButton onClick={handleCerrarConConfirmacion}>
             <Icon icon="lucide:x" />
           </CloseButton>
         </ModalHeader>
