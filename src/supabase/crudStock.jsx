@@ -45,12 +45,29 @@ export async function MostrarStockXAlmacenYProducto(p) {
 }
 // Buscar stock en TODOS los almacenes que tengan el producto (para mostrar alternativas)
 export async function MostrarStockXAlmacenesYProducto(p) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from(tabla)
-    .select(`*, almacen(*, sucursales(*))`)
+    .select(`
+      id,
+      stock,
+      id_almacen,
+      id_producto,
+      almacen(
+        id,
+        nombre,
+        id_sucursal,
+        sucursales(id, nombre)
+      )
+    `)
     .eq("id_producto", p.id_producto)
     .gt("stock", 0);
-  return data;
+  
+  if (error) {
+    console.error("Error buscando stock en almacenes:", error);
+    return [];
+  }
+  
+  return data || [];
 }
 
 // Nueva función para obtener stock total de un producto en todos los almacenes

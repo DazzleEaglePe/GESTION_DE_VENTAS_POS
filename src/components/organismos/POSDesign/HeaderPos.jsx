@@ -114,14 +114,21 @@ export function HeaderPos() {
   async function manejarErrorStock(error) {
     const mensajeError = error.message || "Error desconocido";
     
-    // Verificar si es un error de stock insuficiente
-    if (mensajeError.includes("Stock insuficiente") || mensajeError.includes("STOCK_ERROR")) {
+    console.log("🔴 manejarErrorStock llamado:", mensajeError);
+    
+    // Verificar si es un error de stock (incluir más variantes del mensaje)
+    const esErrorStock = mensajeError.includes("Stock insuficiente") || 
+                         mensajeError.includes("STOCK_ERROR") ||
+                         mensajeError.includes("no tiene stock");
+    
+    if (esErrorStock) {
       // Extraer información del mensaje
       const match = mensajeError.match(/Disponible:\s*(\d+)/);
       const stockDisponible = match ? parseInt(match[1]) : 0;
       
       // Obtener el producto actual
       const productoActual = useProductosStore.getState().productosItemSelect;
+      console.log("🔍 Buscando stock alternativo para producto:", productoActual?.id, productoActual?.nombre);
       
       // Verificar si hay stock en OTROS almacenes
       const { mostrarStockXAlmacenesYProducto } = useStockStore.getState();
@@ -131,30 +138,39 @@ export function HeaderPos() {
           id_producto: productoActual.id
         });
         
-        // Filtrar para excluir el almacén actual
+        console.log("📦 Stock encontrado en almacenes:", stockOtrosAlmacenes);
+        
+        // Filtrar para excluir el almacén actual y solo mostrar de la misma sucursal
         const almacenActualId = almacenSelectItem?.id || almacenSelectItem?.id_almacen || dataAlmacenesXsucursal?.[0]?.id;
-        const almacenesConStock = stockOtrosAlmacenes?.filter(s => 
-          (s.id_almacen || s.almacen?.id) !== almacenActualId && s.stock > 0
-        ) || [];
+        const sucursalActualId = dataCierreCaja?.caja?.id_sucursal;
+        
+        const almacenesConStock = stockOtrosAlmacenes?.filter(s => {
+          const idAlmacen = s.id_almacen || s.almacen?.id;
+          const idSucursal = s.almacen?.id_sucursal || s.almacen?.sucursales?.id;
+          // Excluir el almacén actual, incluir solo de la misma sucursal, y que tenga stock
+          return idAlmacen !== almacenActualId && 
+                 idSucursal === sucursalActualId && 
+                 s.stock > 0;
+        }) || [];
+        
+        console.log("✅ Almacenes alternativos válidos:", almacenesConStock);
         
         if (almacenesConStock.length > 0) {
-          // HAY stock en otros almacenes - mostrar modal de selección
+          // HAY stock en otros almacenes - mostrar alerta minimalista
           Swal.fire({
+            toast: true,
+            position: "top",
             icon: "info",
-            title: "Stock disponible en otros almacenes",
-            html: `
-              <div style="text-align: left; font-size: 14px;">
-                <p style="margin-bottom: 12px;">El almacén actual no tiene stock suficiente para <strong>"${productoActual.nombre}"</strong>.</p>
-                <p style="color: #10b981; font-size: 13px;">
-                  ✓ Se encontró stock en <strong>${almacenesConStock.length}</strong> almacén(es) alternativo(s).
-                </p>
-              </div>
-            `,
-            confirmButtonColor: "#10b981",
-            confirmButtonText: "Ver almacenes disponibles",
+            title: `Stock en ${almacenesConStock.length} almacén(es)`,
+            text: "¿Deseas ver opciones?",
+            showConfirmButton: true,
             showCancelButton: true,
-            cancelButtonText: "Cancelar",
-            cancelButtonColor: "#64748b",
+            confirmButtonText: "Ver",
+            cancelButtonText: "No",
+            confirmButtonColor: "#10b981",
+            cancelButtonColor: "#94a3b8",
+            timer: 8000,
+            timerProgressBar: true,
           }).then((result) => {
             if (result.isConfirmed) {
               // Abrir modal de selección de almacén
@@ -167,23 +183,13 @@ export function HeaderPos() {
         console.error("Error verificando stock en otros almacenes:", err);
       }
       
-      // NO hay stock en ningún almacén - mostrar mensaje de error
-      Swal.fire({
-        icon: "warning",
-        title: "Stock insuficiente",
-        html: `
-          <div style="text-align: left; font-size: 14px;">
-            <p style="margin-bottom: 12px;">${mensajeError.replace("STOCK_ERROR: ", "")}</p>
-            <p style="color: #666; font-size: 13px;">
-              ${stockDisponible === 0 
-                ? "Este producto no tiene stock disponible en ningún almacén." 
-                : `Solo puede agregar hasta ${stockDisponible} unidad(es).`}
-            </p>
-          </div>
-        `,
-        confirmButtonColor: "#111",
-        confirmButtonText: "Entendido",
-      });
+      // NO hay stock en ningún almacén - mostrar toast de error
+      toast.error(
+        stockDisponible === 0 
+          ? "Sin stock disponible en esta sucursal" 
+          : `Stock máximo: ${stockDisponible} unidad(es)`,
+        { duration: 4000 }
+      );
       return;
     }
     
@@ -384,13 +390,10 @@ export function HeaderPos() {
     mutationKey: ["insertar ventas"],
     mutationFn: aplicarMultiprecioYAgregar,
     onError: (error) => {
-      manejarErrorStock(error);
+      console.log("❌ Error en mutación:", error);
       manejarErrorStock(error);
       
       queryClient.invalidateQueries(["mostrar Stock XAlmacenes YProducto"]);
-      if (dataStockXAlmacenesYProducto) {
-        setStateModal(true);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["mostrar detalle venta"]);

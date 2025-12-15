@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import styled from "styled-components";
 import { useEmpresaStore } from "../../../store/EmpresaStore";
 import { useProductosStore } from "../../../store/ProductosStore";
@@ -22,14 +22,35 @@ export const SelectAlmacenModal = () => {
   const { dataempresa } = useEmpresaStore();
   const { productosItemSelect } = useProductosStore();
   const { sucursalesItemSelectAsignadas } = useAsignacionCajaSucursalStore();
-  const { almacenSelectItem, setAlmacenSelectItem } = useAlmacenesStore();
+  const { almacenSelectItem, setAlmacenSelectItem, dataAlmacenesXsucursal } = useAlmacenesStore();
   const { insertarVentas, idventa } = useVentasStore();
   const { insertarDetalleVentas } = useDetalleVentasStore();
   const { cliproItemSelect } = useClientesProveedoresStore();
   const { dataCierreCaja } = useCierreCajaStore();
-  const { setStateModal, dataStockXAlmacenesYProducto: data } = useStockStore();
+  const { setStateModal, dataStockXAlmacenesYProducto } = useStockStore();
   const {datausuarios} = useUsuariosStore()
   const queryClient = useQueryClient();
+  
+  // Filtrar almacenes: solo los de la sucursal actual
+  const sucursalActualId = dataCierreCaja?.caja?.id_sucursal;
+  const almacenActualId = almacenSelectItem?.id || almacenSelectItem?.id_almacen || dataAlmacenesXsucursal?.[0]?.id;
+  
+  const data = useMemo(() => {
+    if (!dataStockXAlmacenesYProducto || !sucursalActualId) {
+      return [];
+    }
+    
+    return dataStockXAlmacenesYProducto.filter(item => {
+      const itemSucursalId = item.almacen?.id_sucursal || item.almacen?.sucursales?.id;
+      const itemAlmacenId = item.id_almacen || item.almacen?.id;
+      
+      // Solo almacenes de la misma sucursal y diferente al actual
+      return itemSucursalId === sucursalActualId && 
+             itemAlmacenId !== almacenActualId &&
+             item.stock > 0;
+    });
+  }, [dataStockXAlmacenesYProducto, sucursalActualId, almacenActualId]);
+
   async function insertarventas() {
     if (idventa === 0) {
       const pventas = {

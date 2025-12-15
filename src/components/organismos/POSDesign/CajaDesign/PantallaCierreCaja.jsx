@@ -234,8 +234,8 @@ export function PantallaCierreCaja() {
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -245,35 +245,35 @@ const Overlay = styled.div`
 
 const Container = styled.div`
   background: #fff;
-  border-radius: 24px;
+  border-radius: 20px;
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 `;
 
 const LoadingContainer = styled.div`
   background: #fff;
-  padding: 48px;
-  border-radius: 20px;
+  padding: 40px;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 `;
 
 const LoadingSpinner = styled.div`
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    font-size: 32px;
+    font-size: 28px;
     color: #111;
     animation: spin 1s linear infinite;
   }
@@ -285,62 +285,67 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.span`
-  font-size: 14px;
-  color: #666;
+  font-size: 13px;
+  color: #999;
 `;
 
 const ErrorContainer = styled.div`
   background: #fff;
-  padding: 40px;
-  border-radius: 20px;
+  padding: 32px;
+  border-radius: 16px;
   text-align: center;
-  max-width: 320px;
+  max-width: 300px;
 `;
 
 const ErrorIcon = styled.div`
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   background: #fef2f2;
-  border-radius: 50%;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
+  margin: 0 auto 12px;
 
   svg {
-    font-size: 28px;
+    font-size: 22px;
     color: #dc2626;
   }
 `;
 
 const ErrorTitle = styled.h3`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #111;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 `;
 
 const ErrorMessage = styled.p`
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 `;
 
 const RetryButton = styled.button`
-  padding: 10px 24px;
+  padding: 10px 20px;
   background: #111;
   color: #fff;
   border: none;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: opacity 0.15s;
+  
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
 /* Header */
 const Header = styled.div`
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  padding: 16px 20px;
+  background: #111;
   color: #fff;
 `;
 
@@ -348,13 +353,13 @@ const HeaderTop = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 `;
 
 const BackButton = styled.button`
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   display: flex;
@@ -362,40 +367,40 @@ const BackButton = styled.button`
   justify-content: center;
   cursor: pointer;
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   transition: all 0.15s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
   }
 `;
 
 const HeaderBadge = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 4px 10px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
 
   svg {
-    font-size: 14px;
+    font-size: 12px;
   }
 `;
 
 const HeaderContent = styled.div``;
 
 const HeaderTitle = styled.h2`
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 2px;
 `;
 
 const HeaderSubtitle = styled.p`
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
 `;
 
@@ -403,8 +408,8 @@ const HeaderSubtitle = styled.p`
 const SummarySection = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 20px 24px;
+  gap: 10px;
+  padding: 16px 20px;
   background: #fafafa;
   border-bottom: 1px solid #f0f0f0;
 
@@ -416,25 +421,25 @@ const SummarySection = styled.div`
 const SummaryCard = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
   background: ${({ $variant }) => $variant === 'primary' ? '#111' : '#fff'};
-  border-radius: 16px;
+  border-radius: 12px;
   ${({ $variant }) => $variant !== 'primary' && 'border: 1px solid #e5e5e5;'}
 `;
 
 const SummaryCardIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${({ $variant }) => $variant === 'secondary' ? '#f5f5f5' : 'rgba(255, 255, 255, 0.15)'};
+  background: ${({ $variant }) => $variant === 'secondary' ? '#f5f5f5' : 'rgba(255, 255, 255, 0.12)'};
   flex-shrink: 0;
 
   svg {
-    font-size: 20px;
+    font-size: 18px;
     color: ${({ $variant }) => $variant === 'secondary' ? '#666' : '#fff'};
   }
 `;
@@ -445,15 +450,15 @@ const SummaryCardContent = styled.div`
 `;
 
 const SummaryCardLabel = styled.div`
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: ${({ $variant }) => $variant === 'secondary' ? '#666' : 'rgba(255, 255, 255, 0.7)'};
+  letter-spacing: 0.3px;
+  color: ${({ $variant }) => $variant === 'secondary' ? '#999' : 'rgba(255, 255, 255, 0.6)'};
   margin-bottom: 2px;
 `;
 
 const SummaryCardValue = styled.div`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: ${({ $variant }) => $variant === 'secondary' ? '#111' : '#fff'};
   white-space: nowrap;
@@ -465,57 +470,57 @@ const SummaryCardValue = styled.div`
 const DetailSection = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 `;
 
 const DetailBlock = styled.div`
   background: #fafafa;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
 `;
 
 const DetailHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  background: #f5f5f5;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f0f0f0;
 `;
 
 const DetailHeaderIcon = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    font-size: 16px;
+    font-size: 14px;
     color: #666;
   }
 `;
 
 const DetailHeaderTitle = styled.h3`
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
-  color: #111;
+  color: #333;
   margin: 0;
 `;
 
 const DetailList = styled.div`
-  padding: 8px 0;
+  padding: 6px 0;
 `;
 
 const DetailRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 8px 12px;
   transition: background 0.15s;
 
   &:hover {
@@ -526,18 +531,18 @@ const DetailRow = styled.div`
 const DetailRowLabel = styled.span`
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 12px;
   color: #666;
 
   svg {
-    font-size: 16px;
+    font-size: 14px;
     color: #999;
   }
 `;
 
 const DetailRowValue = styled.span`
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: ${({ $positive, $negative }) => 
     $positive ? '#16a34a' : 
@@ -548,17 +553,16 @@ const DetailTotal = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  background: #f0f0f0;
-  border-top: 1px solid #e5e5e5;
+  padding: 10px 12px;
+  background: #eee;
 
   span {
-    font-size: 13px;
+    font-size: 12px;
     color: #666;
   }
 
   strong {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: #111;
   }
@@ -566,7 +570,7 @@ const DetailTotal = styled.div`
 
 /* Footer */
 const Footer = styled.div`
-  padding: 16px 24px 24px;
+  padding: 14px 20px 20px;
   border-top: 1px solid #f0f0f0;
 `;
 
@@ -574,13 +578,13 @@ const FooterInfo = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   color: #999;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   svg {
-    font-size: 14px;
+    font-size: 12px;
   }
 `;
 
@@ -589,27 +593,22 @@ const CloseRegisterButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 16px 24px;
-  font-size: 15px;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
   font-weight: 600;
   background: #dc2626;
   color: #fff;
   border: none;
-  border-radius: 14px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 
   &:hover {
     background: #b91c1c;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 
   svg {
-    font-size: 20px;
+    font-size: 18px;
   }
 `;
