@@ -354,7 +354,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Soft Delete para SUCURSALES (verifica dependencias)
+-- Función auxiliar para verificar si un almacén tiene stock
+CREATE OR REPLACE FUNCTION almacen_tiene_stock(p_id_almacen BIGINT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS(
+    SELECT 1 FROM stock 
+    WHERE id_almacen = p_id_almacen AND stock > 0
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Soft Delete para SUCURSALES (desactiva automáticamente almacenes vacíos)
 CREATE OR REPLACE FUNCTION soft_delete_sucursal(
   p_id BIGINT,
   p_usuario_id BIGINT DEFAULT NULL
@@ -362,9 +373,11 @@ CREATE OR REPLACE FUNCTION soft_delete_sucursal(
 DECLARE
   v_nombre TEXT;
   v_cajas_activas INTEGER;
-  v_almacenes_activos INTEGER;
+  v_almacenes_con_stock TEXT[];
+  v_almacen RECORD;
+  v_almacenes_desactivados INTEGER := 0;
 BEGIN
-  -- Obtener nombre
+  -- Obtener nombre de la sucursal
   SELECT nombre INTO v_nombre FROM sucursales WHERE id = p_id;
   
   IF v_nombre IS NULL THEN
@@ -378,29 +391,61 @@ BEGIN
   IF v_cajas_activas > 0 THEN
     RETURN jsonb_build_object(
       'success', false, 
-      'error', format('No se puede eliminar "%s". Tiene %s cajas activas.', v_nombre, v_cajas_activas)
+      'error', format('No se puede eliminar "%s". Tiene %s cajas activas. Desactívelas primero.', v_nombre, v_cajas_activas)
     );
   END IF;
   
-  -- Verificar almacenes activos
-  SELECT COUNT(*) INTO v_almacenes_activos
-  FROM almacen WHERE id_sucursal = p_id AND activo = true;
+  -- Verificar almacenes con stock (estos NO se pueden desactivar automáticamente)
+  SELECT ARRAY_AGG(a.nombre) INTO v_almacenes_con_stock
+  FROM almacen a
+  WHERE a.id_sucursal = p_id 
+    AND a.activo = true 
+    AND almacen_tiene_stock(a.id);
   
-  IF v_almacenes_activos > 0 THEN
+  -- Si hay almacenes con stock, no permitir eliminar
+  IF v_almacenes_con_stock IS NOT NULL AND array_length(v_almacenes_con_stock, 1) > 0 THEN
     RETURN jsonb_build_object(
       'success', false, 
-      'error', format('No se puede eliminar "%s". Tiene %s almacenes activos.', v_nombre, v_almacenes_activos)
+      'error', format('No se puede eliminar "%s". Los siguientes almacenes tienen productos con stock: %s. Transfiera o ajuste el stock primero.', 
+        v_nombre, 
+        array_to_string(v_almacenes_con_stock, ', ')
+      )
     );
   END IF;
   
-  -- Eliminar
+  -- Desactivar TODOS los almacenes activos de la sucursal (ya verificamos que están vacíos)
+  FOR v_almacen IN 
+    SELECT id, nombre FROM almacen 
+    WHERE id_sucursal = p_id AND activo = true
+  LOOP
+    UPDATE almacen 
+    SET activo = false, 
+        fecha_eliminacion = NOW(), 
+        eliminado_por = p_usuario_id
+    WHERE id = v_almacen.id;
+    
+    v_almacenes_desactivados := v_almacenes_desactivados + 1;
+  END LOOP;
+  
+  -- Ahora eliminar la sucursal
   UPDATE sucursales 
   SET activo = false, 
       fecha_eliminacion = NOW(), 
       eliminado_por = p_usuario_id
   WHERE id = p_id;
   
-  RETURN jsonb_build_object('success', true, 'message', format('Sucursal "%s" eliminada correctamente', v_nombre));
+  -- Mensaje de éxito con detalle
+  IF v_almacenes_desactivados > 0 THEN
+    RETURN jsonb_build_object(
+      'success', true, 
+      'message', format('Sucursal "%s" eliminada correctamente junto con %s almacén(es).', v_nombre, v_almacenes_desactivados)
+    );
+  ELSE
+    RETURN jsonb_build_object(
+      'success', true, 
+      'message', format('Sucursal "%s" eliminada correctamente.', v_nombre)
+    );
+  END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -444,7 +489,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Soft Delete para ALMACENES
+-- Soft Delete para ALMACENES (verifica stock y si es el único activo)
 CREATE OR REPLACE FUNCTION soft_delete_almacen(
   p_id BIGINT,
   p_usuario_id BIGINT DEFAULT NULL
@@ -452,28 +497,44 @@ CREATE OR REPLACE FUNCTION soft_delete_almacen(
 DECLARE
   v_nombre TEXT;
   v_tiene_stock BOOLEAN;
+  v_es_unico_activo BOOLEAN;
+  v_id_sucursal BIGINT;
+  v_nombre_sucursal TEXT;
 BEGIN
-  -- Obtener nombre
-  SELECT nombre INTO v_nombre FROM almacen WHERE id = p_id;
+  -- Obtener nombre y sucursal
+  SELECT a.nombre, a.id_sucursal, s.nombre
+  INTO v_nombre, v_id_sucursal, v_nombre_sucursal
+  FROM almacen a
+  INNER JOIN sucursales s ON s.id = a.id_sucursal
+  WHERE a.id = p_id;
   
   IF v_nombre IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Almacén no encontrado');
   END IF;
   
   -- Verificar si tiene stock
-  SELECT EXISTS(
-    SELECT 1 FROM stock 
-    WHERE id_almacen = p_id AND stock > 0
-  ) INTO v_tiene_stock;
+  v_tiene_stock := almacen_tiene_stock(p_id);
   
   IF v_tiene_stock THEN
     RETURN jsonb_build_object(
       'success', false, 
-      'error', format('No se puede eliminar "%s". Tiene productos con stock.', v_nombre)
+      'error', format('No se puede eliminar "%s". Tiene productos con stock. Transfiera o ajuste el stock primero.', v_nombre)
     );
   END IF;
   
-  -- Eliminar
+  -- Verificar si es el único almacén activo de la sucursal
+  SELECT COUNT(*) = 1 INTO v_es_unico_activo
+  FROM almacen 
+  WHERE id_sucursal = v_id_sucursal AND activo = true;
+  
+  IF v_es_unico_activo THEN
+    RETURN jsonb_build_object(
+      'success', false, 
+      'error', format('No se puede eliminar "%s". Es el único almacén activo de la sucursal "%s". Si desea eliminarlo, elimine la sucursal directamente.', v_nombre, v_nombre_sucursal)
+    );
+  END IF;
+  
+  -- Eliminar (soft delete)
   UPDATE almacen 
   SET activo = false, 
       fecha_eliminacion = NOW(), 
@@ -523,6 +584,13 @@ $$ LANGUAGE plpgsql;
 -- ============================================
 -- 5. VISTAS PARA DATOS ACTIVOS
 -- ============================================
+
+-- Eliminar vistas existentes para evitar conflictos de columnas
+DROP VIEW IF EXISTS v_productos_activos CASCADE;
+DROP VIEW IF EXISTS v_categorias_activas CASCADE;
+DROP VIEW IF EXISTS v_clientes_activos CASCADE;
+DROP VIEW IF EXISTS v_proveedores_activos CASCADE;
+DROP VIEW IF EXISTS v_usuarios_activos CASCADE;
 
 -- Vista de productos activos
 CREATE OR REPLACE VIEW v_productos_activos AS

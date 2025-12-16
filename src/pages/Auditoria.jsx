@@ -144,64 +144,62 @@ export function Auditoria() {
       </Header>
 
       {/* Resumen de estadísticas */}
-      {resumen && (
-        <StatsGrid>
-          <StatCard>
-            <StatIcon $color="#3b82f6">
-              <Icon icon="lucide:activity" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{resumen.total_operaciones || 0}</StatValue>
-              <StatLabel>Total de operaciones</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#10b981">
-              <Icon icon="lucide:plus-circle" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{resumen.inserciones || 0}</StatValue>
-              <StatLabel>Creaciones</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#f59e0b">
-              <Icon icon="lucide:edit" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{resumen.actualizaciones || 0}</StatValue>
-              <StatLabel>Actualizaciones</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#ef4444">
-              <Icon icon="lucide:trash-2" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{resumen.eliminaciones || 0}</StatValue>
-              <StatLabel>Eliminaciones</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#22c55e">
-              <Icon icon="lucide:shopping-cart" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{resumen.ventas || 0}</StatValue>
-              <StatLabel>Ventas</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#8b5cf6">
-              <Icon icon="lucide:users" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{resumen.usuarios_activos || 0}</StatValue>
-              <StatLabel>Usuarios activos</StatLabel>
-            </StatInfo>
-          </StatCard>
-        </StatsGrid>
-      )}
+      <StatsGrid>
+        <StatCard>
+          <StatIcon $color="#3b82f6">
+            <Icon icon="lucide:activity" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{resumen?.total_operaciones || 0}</StatValue>
+            <StatLabel>Total de operaciones</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#10b981">
+            <Icon icon="lucide:plus-circle" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{resumen?.inserciones || 0}</StatValue>
+            <StatLabel>Creaciones</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#f59e0b">
+            <Icon icon="lucide:edit" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{resumen?.actualizaciones || 0}</StatValue>
+            <StatLabel>Actualizaciones</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#ef4444">
+            <Icon icon="lucide:trash-2" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{resumen?.eliminaciones || 0}</StatValue>
+            <StatLabel>Eliminaciones</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#22c55e">
+            <Icon icon="lucide:shopping-cart" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{resumen?.ventas || 0}</StatValue>
+            <StatLabel>Ventas</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#8b5cf6">
+            <Icon icon="lucide:users" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{resumen?.usuarios_activos || 0}</StatValue>
+            <StatLabel>Usuarios activos</StatLabel>
+          </StatInfo>
+        </StatCard>
+      </StatsGrid>
 
       {/* Filtros */}
       <FiltersBar>

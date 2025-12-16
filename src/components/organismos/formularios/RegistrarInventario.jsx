@@ -25,6 +25,9 @@ export function RegistrarInventario({ setIsExploding }) {
   const { buscarCliPro } = useClientesProveedoresStore();
   const { dataempresa } = useEmpresaStore();
   
+  // Determinar si el producto se vende por granel (permite decimales)
+  const esGranel = productosItemSelect?.sevende_por === "GRANEL";
+  
   // Estado para proveedor
   const [proveedorSelect, setProveedorSelect] = useState(null);
   const [busquedaProveedor, setBusquedaProveedor] = useState("");
@@ -246,20 +249,34 @@ export function RegistrarInventario({ setIsExploding }) {
 
             {/* Cantidad */}
             <InputGroup>
-              <Label>Cantidad</Label>
+              <Label>
+                Cantidad 
+                <TypeIndicator $granel={esGranel}>
+                  {esGranel ? "(Granel - decimales permitidos)" : "(Unidad - solo enteros)"}
+                </TypeIndicator>
+              </Label>
               <InputWrapper>
                 <InputIcon>
                   <Icon icon="lucide:hash" />
                 </InputIcon>
                 <Input
                   type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  {...register("cantidad", { required: true, min: 0.01 })}
+                  step={esGranel ? "0.01" : "1"}
+                  min={esGranel ? "0.01" : "1"}
+                  placeholder={esGranel ? "0.00" : "0"}
+                  {...register("cantidad", { 
+                    required: "Cantidad requerida",
+                    min: { value: esGranel ? 0.01 : 1, message: `Mínimo ${esGranel ? "0.01" : "1"}` },
+                    validate: value => {
+                      if (!esGranel && !Number.isInteger(Number(value))) {
+                        return "Este producto solo acepta cantidades enteras";
+                      }
+                      return true;
+                    }
+                  })}
                 />
               </InputWrapper>
-              {errors.cantidad && <ErrorText>Cantidad requerida y mayor a 0</ErrorText>}
+              {errors.cantidad && <ErrorText>{errors.cantidad.message || "Cantidad requerida y mayor a 0"}</ErrorText>}
             </InputGroup>
 
             {/* Precios */}
@@ -732,4 +749,13 @@ const RemoveProvBtn = styled.button`
   &:hover {
     background: #fef2f2;
   }
+`;
+const TypeIndicator = styled.span`
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: ${props => props.$granel ? '#fef3c7' : '#dbeafe'};
+  color: ${props => props.$granel ? '#92400e' : '#1e40af'};
 `;

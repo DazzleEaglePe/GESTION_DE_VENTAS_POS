@@ -28,7 +28,8 @@ export async function MostrarAlmacenesXEmpresa(p) {
   const { data } = await supabase
     .from("sucursales")
     .select(`*, almacen(*)`)
-    .eq("id_empresa", p.id_empresa);
+    .eq("id_empresa", p.id_empresa)
+    .eq("activo", true);
   return data;
 }
 export async function MostrarAlmacenesXSucursal(p) {

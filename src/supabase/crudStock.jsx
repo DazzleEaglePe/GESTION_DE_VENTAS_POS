@@ -79,6 +79,42 @@ export async function MostrarStockTotalXProducto(p) {
   return data;
 }
 
+// Obtener productos con stock disponible en un almacén específico
+export async function MostrarProductosConStockEnAlmacen(p) {
+  const { data, error } = await supabase
+    .from(tabla)
+    .select(`
+      id,
+      stock,
+      id_producto,
+      productos(
+        id,
+        nombre,
+        codigo_barras,
+        precio_venta,
+        activo
+      )
+    `)
+    .eq("id_almacen", p.id_almacen)
+    .gt("stock", 0);
+  
+  if (error) {
+    console.error("Error obteniendo productos con stock:", error);
+    return [];
+  }
+  
+  // Filtrar solo productos activos y mapear la estructura
+  return (data || [])
+    .filter(item => item.productos?.activo === true)
+    .map(item => ({
+      id: item.productos.id,
+      nombre: item.productos.nombre,
+      codigo_barras: item.productos.codigo_barras,
+      precio_venta: item.productos.precio_venta,
+      stock_disponible: item.stock,
+    }));
+}
+
 /**
  * Registra un movimiento de stock de forma atómica
  * Incluye: inserción de movimiento, actualización de stock y precios

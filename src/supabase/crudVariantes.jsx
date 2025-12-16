@@ -83,6 +83,113 @@ export async function EliminarAtributo(p) {
   return { exito: true };
 }
 
+/**
+ * Obtener atributos inactivos de la empresa
+ */
+export async function ObtenerAtributosInactivos(p) {
+  if (!p?.id_empresa) return [];
+
+  const { data, error } = await supabase
+    .from("atributos")
+    .select(`
+      *,
+      atributo_valores (*)
+    `)
+    .eq("id_empresa", p.id_empresa)
+    .eq("activo", false)
+    .order("nombre");
+
+  if (error) {
+    throw new Error("Error al obtener atributos inactivos: " + error.message);
+  }
+
+  return data || [];
+}
+
+/**
+ * Restaurar atributo
+ */
+export async function RestaurarAtributo(p) {
+  const { error } = await supabase
+    .from("atributos")
+    .update({ activo: true })
+    .eq("id", p.id);
+
+  if (error) {
+    throw new Error("Error al restaurar atributo: " + error.message);
+  }
+
+  return { exito: true };
+}
+
+/**
+ * Editar atributo
+ */
+export async function EditarAtributo(p) {
+  const { error } = await supabase
+    .from("atributos")
+    .update({ nombre: p.nombre })
+    .eq("id", p.id);
+
+  if (error) {
+    throw new Error("Error al editar atributo: " + error.message);
+  }
+
+  return { exito: true };
+}
+
+/**
+ * Editar valor de atributo
+ */
+export async function EditarValorAtributo(p) {
+  const { error } = await supabase
+    .from("atributo_valores")
+    .update({ 
+      valor: p.valor,
+      valor_visual: p.valor_visual || null 
+    })
+    .eq("id", p.id);
+
+  if (error) {
+    throw new Error("Error al editar valor: " + error.message);
+  }
+
+  return { exito: true };
+}
+
+/**
+ * Eliminar valor de atributo
+ * Verifica primero si está en uso en producto_variantes
+ */
+export async function EliminarValorAtributo(p) {
+  // Primero verificar si el valor está siendo usado en alguna variante
+  const { data: enUso, error: errorVerificar } = await supabase
+    .from("producto_variantes")
+    .select("id")
+    .eq("id_valor", p.id)
+    .limit(1);
+
+  if (errorVerificar) {
+    throw new Error("Error al verificar uso del valor: " + errorVerificar.message);
+  }
+
+  if (enUso && enUso.length > 0) {
+    throw new Error("No se puede eliminar: este valor está siendo usado en variantes de productos");
+  }
+
+  // Si no está en uso, eliminar físicamente
+  const { error } = await supabase
+    .from("atributo_valores")
+    .delete()
+    .eq("id", p.id);
+
+  if (error) {
+    throw new Error("Error al eliminar valor: " + error.message);
+  }
+
+  return { exito: true };
+}
+
 // =====================================================
 // VARIANTES DE PRODUCTO
 // =====================================================

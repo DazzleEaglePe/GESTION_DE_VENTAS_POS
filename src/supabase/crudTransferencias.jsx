@@ -110,11 +110,19 @@ export async function ObtenerDetalleTransferencia(p) {
  * Obtener estadísticas de transferencias
  */
 export async function EstadisticasTransferencias(p) {
-  const { data, error } = await supabase.rpc("estadisticas_transferencias", {
+  // Solo pasar fechas si están definidas, para que SQL use sus valores DEFAULT
+  const params = {
     _id_empresa: p.id_empresa,
-    _fecha_inicio: p.fecha_inicio || null,
-    _fecha_fin: p.fecha_fin || null,
-  });
+  };
+  
+  if (p.fecha_inicio) {
+    params._fecha_inicio = p.fecha_inicio;
+  }
+  if (p.fecha_fin) {
+    params._fecha_fin = p.fecha_fin;
+  }
+
+  const { data, error } = await supabase.rpc("estadisticas_transferencias", params);
 
   if (error) {
     throw new Error("Error al obtener estadísticas: " + error.message);

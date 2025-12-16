@@ -30,11 +30,19 @@ export async function ResumenAuditoria(p) {
     return null;
   }
 
-  const { data, error } = await supabase.rpc("resumen_auditoria", {
+  // Solo pasar fechas si están definidas, para que SQL use sus valores DEFAULT
+  const params = {
     _id_empresa: p.id_empresa,
-    _fecha_inicio: p.fecha_inicio || null,
-    _fecha_fin: p.fecha_fin || null,
-  });
+  };
+  
+  if (p.fecha_inicio) {
+    params._fecha_inicio = p.fecha_inicio;
+  }
+  if (p.fecha_fin) {
+    params._fecha_fin = p.fecha_fin;
+  }
+
+  const { data, error } = await supabase.rpc("resumen_auditoria", params);
 
   if (error) {
     throw new Error(error.message);

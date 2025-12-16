@@ -134,46 +134,44 @@ export function HistorialPrecios() {
       </Header>
 
       {/* Estadísticas */}
-      {estadisticas && (
-        <StatsGrid>
-          <StatCard>
-            <StatIcon $color="#3b82f6">
-              <Icon icon="lucide:git-commit" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.total_cambios || 0}</StatValue>
-              <StatLabel>Total de cambios</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#ef4444">
-              <Icon icon="lucide:trending-up" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.cambios_incremento || 0}</StatValue>
-              <StatLabel>Incrementos</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#22c55e">
-              <Icon icon="lucide:trending-down" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.cambios_decremento || 0}</StatValue>
-              <StatLabel>Decrementos</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#f59e0b">
-              <Icon icon="lucide:percent" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.promedio_variacion_venta || 0}%</StatValue>
-              <StatLabel>Variación promedio</StatLabel>
-            </StatInfo>
-          </StatCard>
-        </StatsGrid>
-      )}
+      <StatsGrid>
+        <StatCard>
+          <StatIcon $color="#3b82f6">
+            <Icon icon="lucide:git-commit" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.total_cambios || 0}</StatValue>
+            <StatLabel>Total de cambios</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#ef4444">
+            <Icon icon="lucide:trending-up" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.cambios_incremento || 0}</StatValue>
+            <StatLabel>Incrementos</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#22c55e">
+            <Icon icon="lucide:trending-down" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.cambios_decremento || 0}</StatValue>
+            <StatLabel>Decrementos</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#f59e0b">
+            <Icon icon="lucide:percent" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.promedio_variacion_venta || 0}%</StatValue>
+            <StatLabel>Variación promedio</StatLabel>
+          </StatInfo>
+        </StatCard>
+      </StatsGrid>
 
       {/* Filtros */}
       <FiltersBar>

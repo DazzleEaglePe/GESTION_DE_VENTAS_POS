@@ -20,9 +20,9 @@ export const AlmacenesTemplate = () => {
 
   // Query para almacenes activos por empresa (sucursales con sus almacenes)
   const { data: dataActivos } = useQuery({
-    queryKey: ["mostrar almacenes X empresa"],
+    queryKey: ["mostrar almacenes X empresa", dataempresa?.id],
     queryFn: () => mostrarAlmacenesXEmpresa({ id_empresa: dataempresa?.id }),
-    enabled: !!dataempresa,
+    enabled: !!dataempresa?.id,
   });
 
   // Query para sucursales con almacenes inactivos

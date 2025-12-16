@@ -22,7 +22,8 @@ export async function MostrarCajasXSucursal(p) {
   const { data } = await supabase
     .from(tabla)
     .select(`*, caja(*)`)
-    .eq("id_empresa", p.id_empresa);
+    .eq("id_empresa", p.id_empresa)
+    .eq("activo", true);
   return data;
 }
 export async function InsertarSucursal(p) {

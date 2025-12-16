@@ -8,12 +8,12 @@ import {
   ObtenerDetalleTransferencia,
 } from "../supabase/crudTransferencias";
 import { MostrarAlmacenesXEmpresa } from "../supabase/crudAlmacenes";
-import { MostrarProductos } from "../supabase/crudProductos";
+import { MostrarProductosConStockEnAlmacen } from "../supabase/crudStock";
 import styled from "styled-components";
 import { Icon } from "@iconify/react";
 import { useState, useMemo } from "react";
 import Swal from "sweetalert2";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 
 // Mapeo de estados
 const estadoNombres = {
@@ -41,11 +41,19 @@ export function Transferencias() {
     enabled: !!dataempresa?.id,
   });
 
-  // Query para productos de la empresa
-  const { data: productos = [] } = useQuery({
-    queryKey: ["productos-empresa", dataempresa?.id],
-    queryFn: () => MostrarProductos({ id_empresa: dataempresa?.id }),
-    enabled: !!dataempresa?.id,
+  // Form para nueva transferencia (movido arriba para usar en query)
+  const [formData, setFormData] = useState({
+    id_almacen_origen: "",
+    id_almacen_destino: "",
+    notas: "",
+    productos: [],
+  });
+
+  // Query para productos con stock en el almacén origen seleccionado
+  const { data: productosConStock = [], isLoading: loadingProductos } = useQuery({
+    queryKey: ["productos-stock-almacen", formData.id_almacen_origen],
+    queryFn: () => MostrarProductosConStockEnAlmacen({ id_almacen: parseInt(formData.id_almacen_origen) }),
+    enabled: !!formData.id_almacen_origen,
   });
 
   // Aplanar almacenes de todas las sucursales
@@ -69,14 +77,6 @@ export function Transferencias() {
   // Filtros
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [busqueda, setBusqueda] = useState("");
-
-  // Form para nueva transferencia
-  const [formData, setFormData] = useState({
-    id_almacen_origen: "",
-    id_almacen_destino: "",
-    notas: "",
-    productos: [],
-  });
 
   // Producto a agregar
   const [productoSeleccionado, setProductoSeleccionado] = useState("");
@@ -128,13 +128,19 @@ export function Transferencias() {
   const agregarProducto = () => {
     if (!productoSeleccionado || cantidadProducto <= 0) return;
 
-    const producto = productos?.find((p) => p.id === parseInt(productoSeleccionado));
+    const producto = productosConStock?.find((p) => p.id === parseInt(productoSeleccionado));
     if (!producto) return;
 
     // Verificar si ya existe
     const existe = formData.productos.find((p) => p.id_producto === producto.id);
     if (existe) {
-      Swal.fire("Error", "Este producto ya está en la lista", "warning");
+      toast.warning("Este producto ya está en la lista");
+      return;
+    }
+
+    // Verificar que la cantidad no exceda el stock disponible
+    if (parseFloat(cantidadProducto) > producto.stock_disponible) {
+      toast.error(`Stock insuficiente. Disponible: ${producto.stock_disponible}`);
       return;
     }
 
@@ -146,6 +152,7 @@ export function Transferencias() {
           id_producto: producto.id,
           nombre: producto.nombre,
           cantidad: parseFloat(cantidadProducto),
+          stock_disponible: producto.stock_disponible,
         },
       ],
     });
@@ -202,7 +209,16 @@ export function Transferencias() {
         });
         refetch();
       } else if (resultado?.exito === false) {
-        toast.error(resultado.mensaje || "Error al crear la transferencia");
+        // Si hay productos sin stock, mostrar detalle en toast
+        if (resultado.productos_sin_stock && resultado.productos_sin_stock.length > 0) {
+          const productosDetalle = resultado.productos_sin_stock
+            .map(p => `${p.producto}: disponible ${p.stock_disponible}, solicitado ${p.cantidad_solicitada}`)
+            .join(" | ");
+          
+          toast.error(`${resultado.mensaje}: ${productosDetalle}`, { duration: 6000 });
+        } else {
+          toast.error(resultado.mensaje || "Error al crear la transferencia", { duration: 6000 });
+        }
       } else {
         // Respuesta inesperada pero posiblemente exitosa (sin estructura estándar)
         toast.success("Transferencia creada correctamente");
@@ -238,12 +254,19 @@ export function Transferencias() {
   const handleEnviar = async (transferencia) => {
     const result = await Swal.fire({
       title: "¿Enviar transferencia?",
-      html: `<p>Se descontará el stock del almacén origen.</p><p><strong>${transferencia.codigo}</strong></p>`,
+      html: `<p style="color: #6b7280; margin-bottom: 8px;">Se descontará el stock del almacén origen.</p><p style="font-weight: 600; color: #111827;">${transferencia.codigo}</p>`,
       icon: "question",
+      iconColor: "#111827",
       showCancelButton: true,
-      confirmButtonColor: "#3b82f6",
       confirmButtonText: "Sí, enviar",
       cancelButtonText: "Cancelar",
+      customClass: {
+        popup: 'swal2-popup-neutral',
+        title: 'swal2-title-neutral',
+        confirmButton: 'swal2-confirm-neutral',
+        cancelButton: 'swal2-cancel-neutral',
+      },
+      buttonsStyling: false,
     });
 
     if (result.isConfirmed) {
@@ -274,12 +297,19 @@ export function Transferencias() {
   const handleRecibir = async (transferencia) => {
     const result = await Swal.fire({
       title: "¿Confirmar recepción?",
-      html: `<p>Se agregará el stock al almacén destino.</p><p><strong>${transferencia.codigo}</strong></p>`,
+      html: `<p style="color: #6b7280; margin-bottom: 8px;">Se agregará el stock al almacén destino.</p><p style="font-weight: 600; color: #111827;">${transferencia.codigo}</p>`,
       icon: "question",
+      iconColor: "#111827",
       showCancelButton: true,
-      confirmButtonColor: "#22c55e",
       confirmButtonText: "Sí, confirmar",
       cancelButtonText: "Cancelar",
+      customClass: {
+        popup: 'swal2-popup-neutral',
+        title: 'swal2-title-neutral',
+        confirmButton: 'swal2-confirm-neutral',
+        cancelButton: 'swal2-cancel-neutral',
+      },
+      buttonsStyling: false,
     });
 
     if (result.isConfirmed) {
@@ -314,9 +344,17 @@ export function Transferencias() {
       inputLabel: "Motivo de cancelación (opcional)",
       inputPlaceholder: "Escribe el motivo...",
       showCancelButton: true,
-      confirmButtonColor: "#ef4444",
       confirmButtonText: "Cancelar transferencia",
       cancelButtonText: "Volver",
+      customClass: {
+        popup: 'swal2-popup-neutral',
+        title: 'swal2-title-neutral',
+        input: 'swal2-input-neutral',
+        inputLabel: 'swal2-inputLabel-neutral',
+        confirmButton: 'swal2-confirm-danger-neutral',
+        cancelButton: 'swal2-cancel-neutral',
+      },
+      buttonsStyling: false,
     });
 
     if (motivo !== undefined) {
@@ -357,6 +395,7 @@ export function Transferencias() {
 
   return (
     <Container>
+      <Toaster position="top-right" richColors />
       {/* Header */}
       <Header>
         <HeaderIcon>
@@ -375,46 +414,44 @@ export function Transferencias() {
       </Header>
 
       {/* Estadísticas */}
-      {estadisticas && (
-        <StatsGrid>
-          <StatCard>
-            <StatIcon $color="#3b82f6">
-              <Icon icon="lucide:package" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.total_transferencias || 0}</StatValue>
-              <StatLabel>Total</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#f59e0b">
-              <Icon icon="lucide:clock" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.pendientes || 0}</StatValue>
-              <StatLabel>Pendientes</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#3b82f6">
-              <Icon icon="lucide:truck" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.en_transito || 0}</StatValue>
-              <StatLabel>En tránsito</StatLabel>
-            </StatInfo>
-          </StatCard>
-          <StatCard>
-            <StatIcon $color="#22c55e">
-              <Icon icon="lucide:check-circle" />
-            </StatIcon>
-            <StatInfo>
-              <StatValue>{estadisticas.completadas || 0}</StatValue>
-              <StatLabel>Completadas</StatLabel>
-            </StatInfo>
-          </StatCard>
-        </StatsGrid>
-      )}
+      <StatsGrid>
+        <StatCard>
+          <StatIcon $color="#3b82f6">
+            <Icon icon="lucide:package" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.total_transferencias || 0}</StatValue>
+            <StatLabel>Total</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#f59e0b">
+            <Icon icon="lucide:clock" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.pendientes || 0}</StatValue>
+            <StatLabel>Pendientes</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#3b82f6">
+            <Icon icon="lucide:truck" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.en_transito || 0}</StatValue>
+            <StatLabel>En tránsito</StatLabel>
+          </StatInfo>
+        </StatCard>
+        <StatCard>
+          <StatIcon $color="#22c55e">
+            <Icon icon="lucide:check-circle" />
+          </StatIcon>
+          <StatInfo>
+            <StatValue>{estadisticas?.completadas || 0}</StatValue>
+            <StatLabel>Completadas</StatLabel>
+          </StatInfo>
+        </StatCard>
+      </StatsGrid>
 
       {/* Filtros */}
       <FiltersBar>
@@ -571,9 +608,15 @@ export function Transferencias() {
                   </AlmacenSelectorLabel>
                   <FormSelect
                     value={formData.id_almacen_origen}
-                    onChange={(e) =>
-                      setFormData({ ...formData, id_almacen_origen: e.target.value })
-                    }
+                    onChange={(e) => {
+                      // Limpiar productos al cambiar almacén origen
+                      setFormData({ 
+                        ...formData, 
+                        id_almacen_origen: e.target.value,
+                        productos: [] 
+                      });
+                      setProductoSeleccionado("");
+                    }}
                   >
                     <option value="">Seleccionar almacén...</option>
                     {almacenes?.map((a) => (
@@ -624,11 +667,20 @@ export function Transferencias() {
                   <FormSelect
                     value={productoSeleccionado}
                     onChange={(e) => setProductoSeleccionado(e.target.value)}
+                    disabled={!formData.id_almacen_origen}
                   >
-                    <option value="">Buscar producto...</option>
-                    {productos?.map((p) => (
+                    <option value="">
+                      {!formData.id_almacen_origen 
+                        ? "Selecciona almacén origen primero..." 
+                        : loadingProductos 
+                          ? "Cargando productos..." 
+                          : productosConStock.length === 0 
+                            ? "Sin productos con stock" 
+                            : "Buscar producto..."}
+                    </option>
+                    {productosConStock?.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.nombre}
+                        {p.nombre} (Stock: {p.stock_disponible})
                       </option>
                     ))}
                   </FormSelect>
@@ -825,8 +877,8 @@ const Header = styled.div`
   gap: 16px;
   padding: 24px;
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
   margin-bottom: 20px;
 
   @media (max-width: 768px) {
@@ -836,17 +888,17 @@ const Header = styled.div`
 `;
 
 const HeaderIcon = styled.div`
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    font-size: 28px;
-    color: #fff;
+    font-size: 24px;
+    color: #374151;
   }
 `;
 
@@ -854,15 +906,15 @@ const HeaderContent = styled.div`
   flex: 1;
 
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 600;
-    color: #1a1a2e;
+    color: #111827;
     margin: 0;
   }
 
   p {
     font-size: 0.875rem;
-    color: #64748b;
+    color: #6b7280;
     margin: 4px 0 0 0;
   }
 `;
@@ -876,26 +928,25 @@ const NuevaBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  padding: 10px 18px;
+  background: #111827;
   color: #fff;
   border: none;
-  border-radius: 10px;
-  font-size: 0.9rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    background: #1f2937;
   }
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 20px;
 `;
 
@@ -903,49 +954,50 @@ const StatCard = styled.div`
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px;
+  padding: 16px;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
 `;
 
 const StatIcon = styled.div`
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: ${(props) => props.$color}15;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
-    font-size: 22px;
-    color: ${(props) => props.$color};
+    font-size: 20px;
+    color: #6b7280;
   }
 `;
 
 const StatInfo = styled.div``;
 
 const StatValue = styled.div`
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #111827;
   line-height: 1;
 `;
 
 const StatLabel = styled.div`
   font-size: 0.75rem;
-  color: #64748b;
+  color: #6b7280;
   margin-top: 4px;
 `;
 
 const FiltersBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 12px;
+  padding: 12px 16px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   margin-bottom: 20px;
   flex-wrap: wrap;
 `;
@@ -956,14 +1008,14 @@ const SearchBox = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
 
   svg {
-    color: #94a3b8;
-    font-size: 18px;
+    color: #9ca3af;
+    font-size: 16px;
   }
 
   input {
@@ -971,50 +1023,50 @@ const SearchBox = styled.div`
     border: none;
     background: transparent;
     font-size: 0.875rem;
-    color: #1e293b;
+    color: #111827;
     outline: none;
 
     &::placeholder {
-      color: #94a3b8;
+      color: #9ca3af;
     }
   }
 `;
 
 const FilterGroup = styled.div`
   display: flex;
-  gap: 12px;
+  gap: 8px;
 `;
 
 const FilterSelect = styled.select`
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
   background: #fff;
   font-size: 0.875rem;
-  color: #1e293b;
+  color: #111827;
   cursor: pointer;
   outline: none;
 
   &:focus {
-    border-color: #8b5cf6;
+    border-color: #111827;
   }
 `;
 
 const TransferenciasList = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
 `;
 
 const TransferenciaCard = styled.div`
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
   transition: all 0.2s;
 
   &:hover {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
   }
 `;
 
@@ -1022,8 +1074,8 @@ const CardHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
 `;
 
 const CardCodigo = styled.div`
@@ -1031,112 +1083,131 @@ const CardCodigo = styled.div`
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: #1e293b;
+  font-size: 0.875rem;
+  color: #111827;
 
   svg {
-    color: #94a3b8;
+    color: #9ca3af;
   }
 `;
 
 const EstadoBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.7rem;
   font-weight: 600;
-  background: ${(props) => props.$color}15;
-  color: ${(props) => props.$color};
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: ${(props) => 
+    props.$color === "#22c55e" ? "#ecfdf5" : 
+    props.$color === "#f59e0b" ? "#fffbeb" : 
+    props.$color === "#3b82f6" ? "#eff6ff" : 
+    props.$color === "#ef4444" ? "#fef2f2" : "#f3f4f6"};
+  color: ${(props) => 
+    props.$color === "#22c55e" ? "#059669" : 
+    props.$color === "#f59e0b" ? "#d97706" : 
+    props.$color === "#3b82f6" ? "#2563eb" : 
+    props.$color === "#ef4444" ? "#dc2626" : "#374151"};
 `;
 
 const CardBody = styled.div`
-  padding: 20px;
+  padding: 16px;
 `;
 
 const AlmacenesFlow = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 14px;
 `;
 
 const AlmacenBox = styled.div`
   flex: 1;
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
 `;
 
 const AlmacenLabel = styled.div`
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.65rem;
+  color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 `;
 
 const AlmacenNombre = styled.div`
   font-weight: 600;
-  color: #1e293b;
+  font-size: 0.8rem;
+  color: #111827;
 `;
 
 const AlmacenSucursal = styled.div`
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: 0.7rem;
+  color: #6b7280;
 `;
 
 const FlowArrow = styled.div`
-  color: #8b5cf6;
+  color: #d1d5db;
   svg {
-    font-size: 20px;
+    font-size: 18px;
   }
 `;
 
 const CardMeta = styled.div`
   display: flex;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 `;
 
 const MetaItem = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: #64748b;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #6b7280;
+
+  svg {
+    font-size: 14px;
+  }
 `;
 
 const CardFooter = styled.div`
   display: flex;
-  gap: 8px;
-  padding: 16px 20px;
-  border-top: 1px solid #f1f5f9;
+  gap: 6px;
+  padding: 12px 16px;
+  border-top: 1px solid #f3f4f6;
   background: #fafafa;
 `;
 
 const ActionBtn = styled.button`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  border: 1px solid transparent;
 
   background: ${(props) =>
     props.$primary
-      ? "#3b82f6"
+      ? "#111827"
       : props.$success
-      ? "#22c55e"
+      ? "#059669"
       : props.$danger
-      ? "#ef4444"
-      : "#f1f5f9"};
+      ? "#dc2626"
+      : "#fff"};
   color: ${(props) =>
-    props.$primary || props.$success || props.$danger ? "#fff" : "#64748b"};
-  border: none;
+    props.$primary || props.$success || props.$danger ? "#fff" : "#374151"};
+  border-color: ${(props) =>
+    props.$primary || props.$success || props.$danger ? "transparent" : "#e5e7eb"};
 
   &:hover {
     opacity: 0.9;
@@ -1148,40 +1219,41 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  padding: 60px 20px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   text-align: center;
 `;
 
 const EmptyIcon = styled.div`
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
-  background: #f8fafc;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 
   svg {
-    font-size: 36px;
-    color: #cbd5e1;
+    font-size: 28px;
+    color: #9ca3af;
   }
 `;
 
 const EmptyTitle = styled.h3`
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 8px 0;
+  color: #111827;
+  margin: 0 0 6px 0;
 `;
 
 const EmptyText = styled.p`
   font-size: 0.875rem;
-  color: #64748b;
+  color: #6b7280;
   margin: 0;
-  max-width: 300px;
+  max-width: 280px;
 `;
 
 const LoadingState = styled.div`
@@ -1189,15 +1261,15 @@ const LoadingState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
-  gap: 16px;
-  color: #64748b;
+  padding: 60px 20px;
+  gap: 12px;
+  color: #6b7280;
   font-size: 0.875rem;
 
   .spin {
     animation: spin 1s linear infinite;
-    font-size: 32px;
-    color: #8b5cf6;
+    font-size: 28px;
+    color: #374151;
   }
 
   @keyframes spin {
@@ -1240,8 +1312,9 @@ const ModalHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  padding: 20px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
   border-radius: 16px 16px 0 0;
   position: relative;
 `;
@@ -1250,14 +1323,14 @@ const ModalHeaderIcon = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
 
   svg {
     font-size: 20px;
-    color: #fff;
+    color: #374151;
   }
 `;
 
@@ -1268,34 +1341,35 @@ const ModalHeaderText = styled.div`
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #fff;
+    color: #111827;
   }
 
   p {
     margin: 2px 0 0 0;
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: #6b7280;
   }
 `;
 
 const CloseBtn = styled.button`
   position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(255, 255, 255, 0.15);
+  top: 16px;
+  right: 16px;
+  background: transparent;
   border: none;
   width: 32px;
   height: 32px;
   border-radius: 8px;
   cursor: pointer;
-  color: #fff;
+  color: #9ca3af;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: #f3f4f6;
+    color: #374151;
   }
 
   svg {
@@ -1324,11 +1398,11 @@ const SectionTitle = styled.div`
   margin-bottom: 10px;
   font-weight: 600;
   font-size: 0.85rem;
-  color: #1e293b;
+  color: #374151;
 
   svg {
     font-size: 16px;
-    color: #8b5cf6;
+    color: #6b7280;
   }
 `;
 
@@ -1354,7 +1428,7 @@ const AlmacenSelectorLabel = styled.div`
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #64748b;
+  color: #6b7280;
   margin-bottom: 6px;
 
   svg {
@@ -1368,14 +1442,12 @@ const TransferArrow = styled.div`
   justify-content: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: #f1f5f9;
-  color: #8b5cf6;
+  color: #9ca3af;
   margin-bottom: 2px;
   flex-shrink: 0;
 
   svg {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   @media (max-width: 600px) {
@@ -1389,21 +1461,26 @@ const FormSelect = styled.select`
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   background: #fff;
   font-size: 0.8rem;
-  color: #1e293b;
+  color: #111827;
   cursor: pointer;
   transition: all 0.2s;
 
   &:focus {
     outline: none;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: #111827;
   }
 
-  &:hover {
-    border-color: #cbd5e1;
+  &:hover:not(:focus) {
+    border-color: #d1d5db;
+  }
+
+  &:disabled {
+    background: #f9fafb;
+    color: #9ca3af;
+    cursor: not-allowed;
   }
 `;
 
@@ -1411,21 +1488,20 @@ const FormTextarea = styled.textarea`
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   font-size: 0.8rem;
-  color: #1e293b;
+  color: #111827;
   resize: none;
   transition: all 0.2s;
   font-family: inherit;
 
   &:focus {
     outline: none;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: #111827;
   }
 
   &::placeholder {
-    color: #94a3b8;
+    color: #9ca3af;
   }
 `;
 
@@ -1454,20 +1530,19 @@ const CantidadInput = styled.input`
   width: 70px;
   padding: 10px 8px;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   font-size: 0.8rem;
-  color: #1e293b;
+  color: #111827;
   text-align: center;
   transition: all 0.2s;
 
   &:focus {
     outline: none;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    border-color: #111827;
   }
 
   &::placeholder {
-    color: #94a3b8;
+    color: #9ca3af;
   }
 `;
 
@@ -1477,7 +1552,7 @@ const AddProductoBtn = styled.button`
   gap: 6px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: #111827;
   color: #fff;
   border: none;
   cursor: pointer;
@@ -1487,8 +1562,12 @@ const AddProductoBtn = styled.button`
   white-space: nowrap;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    background: #1f2937;
+  }
+
+  &:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
   }
 
   svg {
@@ -1497,10 +1576,10 @@ const AddProductoBtn = styled.button`
 `;
 
 const ProductosListContainer = styled.div`
-  background: #f8fafc;
+  background: #f9fafb;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
 `;
 
 const ProductosListHeader = styled.div`
@@ -1508,10 +1587,10 @@ const ProductosListHeader = styled.div`
   grid-template-columns: 1fr 70px 32px;
   gap: 8px;
   padding: 8px 12px;
-  background: #f1f5f9;
+  background: #f3f4f6;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #64748b;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
@@ -1520,9 +1599,10 @@ const ProductoItemRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 70px 32px;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   align-items: center;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
 
   &:last-of-type {
     border-bottom: none;
@@ -1532,26 +1612,19 @@ const ProductoItemRow = styled.div`
 const ProductoItemInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 `;
 
 const ProductoItemNumber = styled.span`
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: #8b5cf6;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  flex-shrink: 0;
+  color: #9ca3af;
+  min-width: 16px;
 `;
 
 const ProductoItemName = styled.span`
   font-size: 0.8rem;
-  color: #1e293b;
+  color: #111827;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1560,7 +1633,7 @@ const ProductoItemName = styled.span`
 
 const ProductoItemQty = styled.span`
   font-size: 0.8rem;
-  color: #64748b;
+  color: #374151;
   font-weight: 500;
   text-align: center;
 `;
@@ -1569,13 +1642,13 @@ const ProductosTotal = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  background: #f1f5f9;
+  padding: 10px 12px;
+  background: #f3f4f6;
   font-size: 0.8rem;
-  color: #64748b;
+  color: #6b7280;
 
   strong {
-    color: #8b5cf6;
+    color: #111827;
     font-size: 0.9rem;
   }
 `;
@@ -1585,12 +1658,12 @@ const EmptyProductos = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: #f8fafc;
+  padding: 24px;
+  background: #f9fafb;
   border-radius: 10px;
-  border: 2px dashed #e2e8f0;
-  color: #94a3b8;
-  gap: 6px;
+  border: 1px dashed #d1d5db;
+  color: #9ca3af;
+  gap: 8px;
 
   svg {
     font-size: 24px;
@@ -1629,17 +1702,17 @@ const CancelBtn = styled.button`
   gap: 6px;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   background: #fff;
-  color: #64748b;
+  color: #6b7280;
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+    background: #f9fafb;
+    color: #374151;
   }
 
   svg {
@@ -1654,7 +1727,7 @@ const SubmitBtn = styled.button`
   padding: 10px 18px;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: #111827;
   color: #fff;
   font-size: 0.8rem;
   font-weight: 600;
@@ -1662,12 +1735,11 @@ const SubmitBtn = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    background: #1f2937;
   }
 
   &:disabled {
-    opacity: 0.5;
+    background: #d1d5db;
     cursor: not-allowed;
   }
 
@@ -1681,7 +1753,7 @@ const DetalleInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #f8fafc;
+  background: #f9fafb;
   padding: 20px;
   border-radius: 12px;
 `;
@@ -1698,26 +1770,26 @@ const DetalleLabel = styled.span`
   align-items: center;
   gap: 10px;
   font-size: 0.875rem;
-  color: #64748b;
+  color: #6b7280;
   font-weight: 500;
 
   svg {
     font-size: 16px;
-    color: #8b5cf6;
+    color: #9ca3af;
   }
 `;
 
 const DetalleValue = styled.strong`
   font-size: 0.9rem;
-  color: #1e293b;
+  color: #111827;
   font-weight: 600;
 `;
 
 const DetalleProductosList = styled.div`
-  background: #f8fafc;
+  background: #f9fafb;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
 `;
 
 const DetalleProductosHeader = styled.div`
@@ -1725,10 +1797,10 @@ const DetalleProductosHeader = styled.div`
   grid-template-columns: 1fr 80px 80px;
   gap: 12px;
   padding: 12px 16px;
-  background: #f1f5f9;
+  background: #f3f4f6;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: center;
@@ -1744,7 +1816,8 @@ const DetalleProductoItem = styled.div`
   gap: 12px;
   padding: 12px 16px;
   align-items: center;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
 
   &:last-of-type {
     border-bottom: none;
@@ -1756,7 +1829,7 @@ const ProductoNombre = styled.div`
   align-items: center;
   gap: 12px;
   font-weight: 500;
-  color: #1e293b;
+  color: #111827;
   font-size: 0.875rem;
 `;
 
@@ -1769,11 +1842,11 @@ const CantidadBadge = styled.span`
   align-items: center;
   justify-content: center;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: ${({ $type }) => ($type === "enviado" ? "#ede9fe" : "#dcfce7")};
-  color: ${({ $type }) => ($type === "enviado" ? "#7c3aed" : "#16a34a")};
+  background: ${({ $type }) => ($type === "enviado" ? "#f3f4f6" : "#ecfdf5")};
+  color: ${({ $type }) => ($type === "enviado" ? "#374151" : "#059669")};
 `;
 
 export default Transferencias;

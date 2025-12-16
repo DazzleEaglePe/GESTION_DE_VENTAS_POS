@@ -1,9 +1,14 @@
 import { create } from "zustand";
 import {
   ObtenerAtributos,
+  ObtenerAtributosInactivos,
   CrearAtributoConValores,
   AgregarValorAtributo,
+  EditarAtributo,
+  EditarValorAtributo,
   EliminarAtributo,
+  EliminarValorAtributo,
+  RestaurarAtributo,
   CrearVarianteProducto,
   ObtenerVariantesProducto,
   EditarVariante,
@@ -15,6 +20,7 @@ import {
 export const useVariantesStore = create((set, get) => ({
   // Estado
   dataAtributos: [],
+  dataAtributosInactivos: [],
   dataVariantes: [],
   productosConVariantes: [],
   productoSeleccionado: null,
@@ -38,10 +44,30 @@ export const useVariantesStore = create((set, get) => ({
     }
   },
 
+  obtenerAtributosInactivos: async (p) => {
+    try {
+      const data = await ObtenerAtributosInactivos(p);
+      set({ dataAtributosInactivos: data });
+      return data;
+    } catch (error) {
+      console.error("Error al obtener atributos inactivos:", error);
+      return [];
+    }
+  },
+
   crearAtributoConValores: async (p) => {
     try {
       const resultado = await CrearAtributoConValores(p);
       return resultado;
+    } catch (error) {
+      return { exito: false, mensaje: error.message };
+    }
+  },
+
+  editarAtributo: async (p) => {
+    try {
+      await EditarAtributo(p);
+      return { exito: true };
     } catch (error) {
       return { exito: false, mensaje: error.message };
     }
@@ -56,9 +82,36 @@ export const useVariantesStore = create((set, get) => ({
     }
   },
 
+  editarValorAtributo: async (p) => {
+    try {
+      await EditarValorAtributo(p);
+      return { exito: true };
+    } catch (error) {
+      return { exito: false, mensaje: error.message };
+    }
+  },
+
+  eliminarValorAtributo: async (p) => {
+    try {
+      await EliminarValorAtributo(p);
+      return { exito: true };
+    } catch (error) {
+      return { exito: false, mensaje: error.message };
+    }
+  },
+
   eliminarAtributo: async (p) => {
     try {
       await EliminarAtributo(p);
+      return { exito: true };
+    } catch (error) {
+      return { exito: false, mensaje: error.message };
+    }
+  },
+
+  restaurarAtributo: async (p) => {
+    try {
+      await RestaurarAtributo(p);
       return { exito: true };
     } catch (error) {
       return { exito: false, mensaje: error.message };

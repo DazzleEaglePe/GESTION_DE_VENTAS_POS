@@ -163,20 +163,18 @@ export const ListSucursales = ({ data: dataProp, busqueda }) => {
                   <SucursalTitle>{sucursal.nombre}</SucursalTitle>
                   <SucursalMeta>
                     <Icon icon="lucide:monitor" />
-                    <span>{sucursal.caja?.length || 0} cajas</span>
+                    <span>{sucursal.caja?.filter(c => c.activo !== false).length || 0} cajas</span>
                   </SucursalMeta>
                 </SucursalInfo>
               </SucursalLeft>
               <Acciones>
-                {sucursal?.delete && (
-                  <ActionBtn 
-                    $variant="danger"
-                    onClick={() => doDeleteSucursal(sucursal?.id)}
-                    title="Eliminar sucursal"
-                  >
-                    <Icon icon="lucide:trash-2" />
-                  </ActionBtn>
-                )}
+                <ActionBtn 
+                  $variant="danger"
+                  onClick={() => doDeleteSucursal(sucursal?.id)}
+                  title="Eliminar sucursal"
+                >
+                  <Icon icon="lucide:trash-2" />
+                </ActionBtn>
                 <ActionBtn 
                   $variant="edit"
                   onClick={() => editarSucursal(sucursal)}
@@ -202,16 +200,14 @@ export const ListSucursales = ({ data: dataProp, busqueda }) => {
                     </CajaInfo>
                   </CajaLeft>
                   <CajaActions>
-                    {caja?.delete && (
-                      <ActionBtn 
-                        $variant="danger"
-                        $small
-                        onClick={() => doDeleteCaja(caja?.id)}
-                        title="Eliminar caja"
-                      >
-                        <Icon icon="lucide:trash-2" />
-                      </ActionBtn>
-                    )}
+                    <ActionBtn 
+                      $variant="danger"
+                      $small
+                      onClick={() => doDeleteCaja(caja?.id)}
+                      title="Eliminar caja"
+                    >
+                      <Icon icon="lucide:trash-2" />
+                    </ActionBtn>
                     <ActionBtn 
                       $variant="edit"
                       $small

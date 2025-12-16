@@ -20,9 +20,9 @@ export const ListAlmacenes = ({ data: dataProp, busqueda }) => {
 
   // Solo cargar si no se pasan datos como prop
   const { data: dataQuery, isLoading, error } = useQuery({
-    queryKey: ["mostrar almacenes X empresa"],
+    queryKey: ["mostrar almacenes X empresa", dataempresa?.id],
     queryFn: () => mostrarAlmacenesXEmpresa({ id_empresa: dataempresa?.id }),
-    enabled: !!dataempresa && !dataProp,
+    enabled: !!dataempresa?.id && !dataProp,
   });
 
   // Usar datos de prop si existen, sino los de query
@@ -131,15 +131,13 @@ export const ListAlmacenes = ({ data: dataProp, busqueda }) => {
                   </AlmacenInfo>
                 </AlmacenLeft>
                 <AlmacenActions>
-                  {almacen?.delete && (
-                    <ActionBtn 
-                      $variant="danger"
-                      onClick={() => doDeleteAlmacen(almacen?.id)}
-                      title="Desactivar almacén"
-                    >
-                      <Icon icon="lucide:trash-2" />
-                    </ActionBtn>
-                  )}
+                  <ActionBtn 
+                    $variant="danger"
+                    onClick={() => doDeleteAlmacen(almacen?.id)}
+                    title="Desactivar almacén"
+                  >
+                    <Icon icon="lucide:trash-2" />
+                  </ActionBtn>
                   <ActionBtn 
                     $variant="edit"
                     onClick={() => editarAlmacen(almacen)}
