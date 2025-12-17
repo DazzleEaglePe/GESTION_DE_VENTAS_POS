@@ -198,6 +198,11 @@ export function LoginTemplate() {
     <Container>
       <Toaster position="top-center" richColors />
       
+      {/* Background decorations */}
+      <BgDecoration />
+      <BgGlow $position="top-left" />
+      <BgGlow $position="bottom-right" />
+      
       {/* Navbar simple */}
       <Navbar>
         <NavLink to="/" style={{ textDecoration: 'none' }}>
@@ -450,15 +455,50 @@ export function LoginTemplate() {
 // Styled Components
 const Container = styled.div`
   min-height: 100vh;
-  background: #111;
+  background: #f1f5f9;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+`;
+
+const BgDecoration = styled.div`
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.04) 0%, transparent 40%);
+  pointer-events: none;
+`;
+
+const BgGlow = styled.div`
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  filter: blur(150px);
+  opacity: 0.15;
+  pointer-events: none;
+  
+  ${props => props.$position === 'top-left' && `
+    top: -150px;
+    left: -150px;
+    background: #3b82f6;
+  `}
+  
+  ${props => props.$position === 'bottom-right' && `
+    bottom: -150px;
+    right: -150px;
+    background: #3b82f6;
+  `}
 `;
 
 const Navbar = styled.nav`
   padding: 20px 40px;
   display: flex;
   align-items: center;
+  position: relative;
+  z-index: 10;
 `;
 
 const LogoContainer = styled.div`
@@ -468,22 +508,23 @@ const LogoContainer = styled.div`
 `;
 
 const Logo = styled.div`
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  color: #111;
+  width: 44px;
+  height: 44px;
+  background: #3b82f6;
+  color: #fff;
   font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 `;
 
 const LogoText = styled.span`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: #1e293b;
 
   @media (max-width: 480px) {
     display: none;
@@ -497,6 +538,8 @@ const Content = styled.div`
   align-items: center;
   justify-content: center;
   padding: 20px;
+  position: relative;
+  z-index: 10;
 `;
 
 const Card = styled.div`
@@ -505,7 +548,22 @@ const Card = styled.div`
   background: #fff;
   border-radius: 20px;
   padding: 40px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.02),
+    0 10px 20px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+  animation: slideUp 0.4s ease-out;
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   @media (max-width: 480px) {
     padding: 28px;
@@ -521,13 +579,13 @@ const CardHeader = styled.div`
 const Title = styled.h1`
   font-size: 28px;
   font-weight: 700;
-  color: #111;
+  color: #0f172a;
   margin: 0 0 8px 0;
 `;
 
 const Subtitle = styled.p`
   font-size: 15px;
-  color: #666;
+  color: #64748b;
   margin: 0;
 `;
 
@@ -541,33 +599,38 @@ const ModeCard = styled.button`
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  background: #fafafa;
-  border: 2px solid transparent;
-  border-radius: 14px;
+  padding: 18px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   text-align: left;
   width: 100%;
 
   &:hover {
-    border-color: #111;
+    border-color: #3b82f6;
     background: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
   }
 `;
 
 const ModeIcon = styled.div`
   width: 52px;
   height: 52px;
-  background: #111;
+  background: #3b82f6;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   color: #fff;
+  transition: background 0.2s;
+  
+  ${ModeCard}:hover & {
+    background: #2563eb;
+  }
 `;
 
 const ModeInfo = styled.div`
@@ -577,18 +640,24 @@ const ModeInfo = styled.div`
 const ModeTitle = styled.div`
   font-size: 16px;
   font-weight: 600;
-  color: #111;
+  color: #0f172a;
   margin-bottom: 2px;
 `;
 
 const ModeDesc = styled.div`
   font-size: 13px;
-  color: #888;
+  color: #64748b;
 `;
 
 const ModeArrow = styled.div`
   font-size: 20px;
-  color: #ccc;
+  color: #94a3b8;
+  transition: transform 0.2s;
+  
+  ${ModeCard}:hover & {
+    transform: translateX(4px);
+    color: #3b82f6;
+  }
 `;
 
 const FormPanel = styled.div`
@@ -603,14 +672,15 @@ const BackButton = styled.button`
   gap: 8px;
   background: none;
   border: none;
-  color: #888;
+  color: #64748b;
   font-size: 14px;
   cursor: pointer;
   padding: 0;
-  transition: color 0.15s;
+  transition: all 0.2s;
 
   &:hover {
-    color: #111;
+    color: #3b82f6;
+    transform: translateX(-2px);
   }
 `;
 
@@ -619,12 +689,17 @@ const ModeBadge = styled.div`
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #111;
+  background: ${props => props.$variant === 'admin' 
+    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
+    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'};
   color: #fff;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   align-self: flex-start;
+  box-shadow: ${props => props.$variant === 'admin'
+    ? '0 4px 12px rgba(245, 158, 11, 0.3)'
+    : '0 4px 12px rgba(59, 130, 246, 0.3)'};
 `;
 
 const Form = styled.form`
@@ -642,7 +717,7 @@ const InputGroup = styled.div`
 const InputLabel = styled.label`
   font-size: 14px;
   font-weight: 600;
-  color: #111;
+  color: #334155;
 `;
 
 const InputWrapper = styled.div`
@@ -662,36 +737,41 @@ const InputIcon = styled.div`
   position: absolute;
   left: 14px;
   font-size: 18px;
-  color: #666;
+  color: #64748b;
   display: flex;
   z-index: 1;
+  transition: color 0.2s;
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 14px 44px 14px 44px;
   font-size: 15px;
-  border: 2px solid #e5e5e5;
+  border: 2px solid #e2e8f0;
   border-radius: 12px;
-  background: #fafafa;
-  color: #111;
-  transition: all 0.15s;
+  background: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s;
   outline: none;
 
   &::placeholder {
-    color: #aaa;
+    color: #94a3b8;
   }
 
   &:focus {
-    border-color: #111;
+    border-color: #3b82f6;
     background: #fff;
-    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  &:focus + ${InputIcon}, &:focus ~ ${InputIcon} {
+    color: #3b82f6;
   }
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    background: #f5f5f5;
+    background: #f1f5f9;
   }
 `;
 
@@ -706,7 +786,7 @@ const PrimaryButton = styled.button`
   justify-content: center;
   gap: 8px;
   padding: 16px 24px;
-  background: #111;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #fff;
   font-size: 15px;
   font-weight: 600;
@@ -715,11 +795,16 @@ const PrimaryButton = styled.button`
   cursor: pointer;
   transition: all 0.2s;
   margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 
   &:hover:not(:disabled) {
-    background: #000;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
 
   &:disabled {
@@ -749,7 +834,7 @@ const GuestButton = styled.button`
   justify-content: center;
   gap: 10px;
   padding: 16px 24px;
-  background: #111;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #fff;
   font-size: 15px;
   font-weight: 600;
@@ -757,11 +842,12 @@ const GuestButton = styled.button`
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 
   &:hover:not(:disabled) {
-    background: #000;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
   }
 
   &:disabled {
@@ -784,12 +870,12 @@ const Divider = styled.div`
 const DividerLine = styled.div`
   flex: 1;
   height: 1px;
-  background: #e5e5e5;
+  background: #e2e8f0;
 `;
 
 const DividerText = styled.span`
   font-size: 13px;
-  color: #999;
+  color: #94a3b8;
 `;
 
 const GoogleButton = styled.button`
@@ -799,17 +885,18 @@ const GoogleButton = styled.button`
   gap: 10px;
   padding: 16px 24px;
   background: #fff;
-  color: #111;
+  color: #334155;
   font-size: 15px;
   font-weight: 500;
-  border: 2px solid #e5e5e5;
+  border: 2px solid #e2e8f0;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background: #fafafa;
-    border-color: #111;
+    background: #f8fafc;
+    border-color: #3b82f6;
+    color: #1e293b;
   }
 
   &:disabled {
@@ -833,7 +920,7 @@ const FooterInfo = styled.div`
   gap: 4px;
   margin-top: 32px;
   font-size: 13px;
-  color: rgba(255,255,255,0.5);
+  color: #94a3b8;
 `;
 
 // Componentes de seguridad

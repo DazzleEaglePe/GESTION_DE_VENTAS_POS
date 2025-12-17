@@ -295,7 +295,7 @@ BEGIN
         ) VALUES (
             v_transferencia.id_almacen_origen,
             v_detalle.id_producto,
-            'salida',
+            'egreso',
             v_detalle.cantidad_enviada,
             'Transferencia ' || v_transferencia.codigo || ' - Enviado a otro almacén',
             'transferencia'
@@ -759,7 +759,11 @@ ORDER BY t.fecha_creacion DESC;
 ALTER TABLE transferencias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE detalle_transferencia ENABLE ROW LEVEL SECURITY;
 
--- Políticas para transferencias
+-- Políticas para transferencias (eliminar si existen)
+DROP POLICY IF EXISTS "Usuarios ven transferencias de su empresa" ON transferencias;
+DROP POLICY IF EXISTS "Sistema puede insertar transferencias" ON transferencias;
+DROP POLICY IF EXISTS "Sistema puede actualizar transferencias" ON transferencias;
+
 CREATE POLICY "Usuarios ven transferencias de su empresa" ON transferencias
     FOR SELECT
     USING (
@@ -778,7 +782,11 @@ CREATE POLICY "Sistema puede actualizar transferencias" ON transferencias
     FOR UPDATE
     USING (true);
 
--- Políticas para detalle
+-- Políticas para detalle (eliminar si existen)
+DROP POLICY IF EXISTS "Usuarios ven detalle de transferencias de su empresa" ON detalle_transferencia;
+DROP POLICY IF EXISTS "Sistema puede insertar detalle" ON detalle_transferencia;
+DROP POLICY IF EXISTS "Sistema puede actualizar detalle" ON detalle_transferencia;
+
 CREATE POLICY "Usuarios ven detalle de transferencias de su empresa" ON detalle_transferencia
     FOR SELECT
     USING (

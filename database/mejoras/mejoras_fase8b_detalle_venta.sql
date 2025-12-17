@@ -355,6 +355,82 @@ $$ LANGUAGE plpgsql;
 --     EXECUTE FUNCTION validar_stock_antes_venta();
 
 -- =====================================================
+-- PARTE 7: CORREGIR TRIGGER validarstock
+-- Problema: Al insertar venta registra 'ingreso' cuando debería ser 'egreso'
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION validarstock() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    stock_actual numeric;
+BEGIN
+    -- Verificar si el producto maneja inventarios
+    IF (SELECT p.maneja_inventarios FROM productos p WHERE p.id = NEW.id_producto) THEN
+        -- Obtener el stock actual
+        SELECT s.stock 
+        INTO stock_actual
+        FROM stock s 
+        WHERE s.id_producto = NEW.id_producto 
+          AND s.id_almacen = NEW.id_almacen;
+
+        -- Incremento en cantidad (UPDATE: usuario aumenta cantidad en carrito)
+        IF TG_OP = 'UPDATE' AND NEW.cantidad > OLD.cantidad THEN
+            -- Verificar si hay suficiente stock disponible para incrementar
+            IF stock_actual < (NEW.cantidad - OLD.cantidad) THEN
+                RAISE EXCEPTION 'Stock insuficiente para el producto %', NEW.descripcion;
+            ELSE
+                -- Descontar solo el incremento de cantidad
+                UPDATE stock 
+                SET stock = stock - (NEW.cantidad - OLD.cantidad)
+                WHERE id_producto = NEW.id_producto 
+                  AND id_almacen = NEW.id_almacen;
+                  
+                -- Registrar movimiento como EGRESO (salida por venta)
+                INSERT INTO movimientos_stock (id_almacen, id_producto, tipo_movimiento, cantidad, fecha, detalle, origen)
+                VALUES (NEW.id_almacen, NEW.id_producto, 'egreso', (NEW.cantidad - OLD.cantidad), NOW(), 'Ajuste de cantidad en venta', 'ventas');
+            END IF;
+        END IF;
+
+        -- Decremento en cantidad (UPDATE: usuario reduce cantidad en carrito)
+        IF TG_OP = 'UPDATE' AND NEW.cantidad < OLD.cantidad THEN
+            -- Aumentar el stock con la cantidad reducida (devolver stock)
+            UPDATE stock 
+            SET stock = stock + (OLD.cantidad - NEW.cantidad)
+            WHERE id_producto = NEW.id_producto 
+              AND id_almacen = NEW.id_almacen;
+              
+            -- Registrar movimiento como INGRESO (devolución por ajuste)
+            INSERT INTO movimientos_stock (id_almacen, id_producto, tipo_movimiento, cantidad, fecha, detalle, origen)
+            VALUES (NEW.id_almacen, NEW.id_producto, 'ingreso', (OLD.cantidad - NEW.cantidad), NOW(), 'Devolución por ajuste en venta', 'ventas');
+        END IF;
+
+        -- Inserción de nueva cantidad (INSERT: agregar producto al carrito)
+        IF TG_OP = 'INSERT' THEN
+            -- Verificar si hay suficiente stock para la cantidad solicitada
+            IF COALESCE(stock_actual, 0) < NEW.cantidad THEN
+                RAISE EXCEPTION 'Stock insuficiente para el producto %', NEW.descripcion;
+            ELSE
+                -- Descontar el stock directamente
+                UPDATE stock 
+                SET stock = stock - NEW.cantidad
+                WHERE id_producto = NEW.id_producto 
+                  AND id_almacen = NEW.id_almacen;
+                  
+                -- Registrar movimiento como EGRESO (salida por venta)
+                INSERT INTO movimientos_stock (id_almacen, id_producto, tipo_movimiento, cantidad, fecha, detalle, origen)
+                VALUES (NEW.id_almacen, NEW.id_producto, 'egreso', NEW.cantidad, NOW(), 'Venta de producto', 'ventas');
+            END IF;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION validarstock IS 'Trigger que valida y actualiza stock al insertar/modificar detalle de venta. Registra movimientos de tipo egreso para ventas e ingreso para devoluciones.';
+
+-- =====================================================
 -- MENSAJE DE FINALIZACIÓN
 -- =====================================================
 DO $$
@@ -368,5 +444,7 @@ BEGIN
     RAISE NOTICE '- Función insertar_detalle_venta_v2 creada';
     RAISE NOTICE '- Vista vista_detalle_venta_completo creada';
     RAISE NOTICE '- Funciones de reportes creadas';
+    RAISE NOTICE '- Trigger validarstock CORREGIDO (egreso en ventas)';
     RAISE NOTICE '========================================';
 END $$;
+

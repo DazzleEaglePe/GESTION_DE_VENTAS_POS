@@ -4,6 +4,18 @@
 -- ============================================
 
 -- ============================================
+-- 0. AGREGAR COLUMNA id_proveedor A movimientos_stock
+-- ============================================
+
+ALTER TABLE movimientos_stock 
+ADD COLUMN IF NOT EXISTS id_proveedor BIGINT REFERENCES clientes_proveedores(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_movimientos_stock_proveedor 
+ON movimientos_stock(id_proveedor);
+
+COMMENT ON COLUMN movimientos_stock.id_proveedor IS 'ID del proveedor asociado al movimiento de ingreso';
+
+-- ============================================
 -- 1. TRANSACCIÓN ATÓMICA PARA MOVIMIENTOS DE STOCK
 -- ============================================
 
@@ -21,11 +33,15 @@ DECLARE
   v_precio_venta_actual NUMERIC;
   v_id_stock INTEGER;
   v_id_almacen INTEGER;
+  v_id_proveedor BIGINT;
 BEGIN
   -- Obtener id_almacen del movimiento
   v_id_almacen := (p_movimiento->>'id_almacen')::INTEGER;
   
-  -- PASO 1: Insertar movimiento de stock
+  -- Obtener id_proveedor del movimiento (puede ser NULL)
+  v_id_proveedor := (p_movimiento->>'id_proveedor')::BIGINT;
+  
+  -- PASO 1: Insertar movimiento de stock CON id_proveedor
   INSERT INTO movimientos_stock (
     id_almacen,
     id_producto,
@@ -33,7 +49,8 @@ BEGIN
     cantidad,
     fecha,
     detalle,
-    origen
+    origen,
+    id_proveedor
   ) VALUES (
     v_id_almacen,
     (p_movimiento->>'id_producto')::INTEGER,
@@ -41,7 +58,8 @@ BEGIN
     (p_movimiento->>'cantidad')::NUMERIC,
     (p_movimiento->>'fecha')::TIMESTAMP,
     (p_movimiento->>'detalle')::TEXT,
-    (p_movimiento->>'origen')::TEXT
+    (p_movimiento->>'origen')::TEXT,
+    v_id_proveedor
   );
   
   -- PASO 2: Obtener o crear stock si no existe
@@ -316,8 +334,8 @@ RETURNS TABLE(
   SELECT 
     p.id,
     p.nombre,
-    p.precio_venta,
-    p.precio_compra,
+    ROUND(p.precio_venta, 2) AS precio_venta,
+    ROUND(p.precio_compra, 2) AS precio_compra,
     p.id_categoria,
     p.sevende_por,
     p.codigo_barras,
@@ -325,8 +343,8 @@ RETURNS TABLE(
     p.id_empresa,
     p.maneja_inventarios,
     p.maneja_multiprecios,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_venta) AS p_venta,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_compra) AS p_compra,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_venta, 2)) AS p_venta,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_compra, 2)) AS p_compra,
     c.nombre AS categoria,
     COALESCE(p.estado, 'activo') AS estado
   FROM productos p
@@ -360,10 +378,10 @@ RETURNS TABLE(
     p.id,
     p.nombre,
     p.codigo_barras AS codigobarras,
-    p.precio_venta,
-    p.precio_compra,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_venta) AS p_venta,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_compra) AS p_compra,
+    ROUND(p.precio_venta, 2) AS precio_venta,
+    ROUND(p.precio_compra, 2) AS precio_compra,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_venta, 2)) AS p_venta,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_compra, 2)) AS p_compra,
     c.nombre AS categoria,
     p.fecha_baja,
     u.nombres AS usuario_baja_nombre
@@ -402,8 +420,8 @@ RETURNS TABLE(
   SELECT 
     p.id,
     p.nombre,
-    p.precio_venta,
-    p.precio_compra,
+    ROUND(p.precio_venta, 2) AS precio_venta,
+    ROUND(p.precio_compra, 2) AS precio_compra,
     p.id_categoria,
     p.sevende_por,
     p.codigo_barras,
@@ -411,8 +429,8 @@ RETURNS TABLE(
     p.id_empresa,
     p.maneja_inventarios,
     p.maneja_multiprecios,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_venta) AS p_venta,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_compra) AS p_compra,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_venta, 2)) AS p_venta,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_compra, 2)) AS p_compra,
     c.nombre AS categoria
   FROM productos p 
   INNER JOIN empresa e ON e.id = p.id_empresa
@@ -452,8 +470,8 @@ RETURNS TABLE(
   SELECT 
     p.id,
     p.nombre,
-    p.precio_venta,
-    p.precio_compra,
+    ROUND(p.precio_venta, 2) AS precio_venta,
+    ROUND(p.precio_compra, 2) AS precio_compra,
     p.id_categoria,
     p.sevende_por,
     p.codigo_barras,
@@ -461,8 +479,8 @@ RETURNS TABLE(
     p.id_empresa,
     p.maneja_inventarios,
     p.maneja_multiprecios,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_venta) AS p_venta,
-    CONCAT(e.simbolo_moneda, ' ', p.precio_compra) AS p_compra,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_venta, 2)) AS p_venta,
+    CONCAT(e.simbolo_moneda, ' ', ROUND(p.precio_compra, 2)) AS p_compra,
     c.nombre AS categoria
   FROM productos p 
   INNER JOIN empresa e ON e.id = p.id_empresa

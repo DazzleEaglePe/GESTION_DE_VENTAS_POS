@@ -26,7 +26,8 @@ const NIVEL = {
 
 export function PantallaConteoCaja() {
   const { cerrarSesion } = useAuthStore();
-  const [montoEfectivo, setMontoEfectivo] = useState(0);
+  const [montoEfectivo, setMontoEfectivo] = useState("");
+  const [inputTocado, setInputTocado] = useState(false);
   const [justificacion, setJustificacion] = useState("");
   const [codigoSupervisor, setCodigoSupervisor] = useState("");
   const [supervisorValidado, setSupervisorValidado] = useState(null);
@@ -76,7 +77,8 @@ export function PantallaConteoCaja() {
   });
 
   // Calcular diferencia
-  const diferencia = montoEfectivo - totalEfectivoTotalCaja;
+  const montoNumerico = parseFloat(montoEfectivo) || 0;
+  const diferencia = montoNumerico - totalEfectivoTotalCaja;
   const porcentajeDiferencia = totalEfectivoTotalCaja > 0 
     ? Math.abs(diferencia) / totalEfectivoTotalCaja * 100 
     : 0;
@@ -255,15 +257,19 @@ export function PantallaConteoCaja() {
               ref={inputRef}
               type="number"
               step="0.01"
+              min="0"
               placeholder="0.00"
-              value={montoEfectivo || ""}
-              onChange={(e) => setMontoEfectivo(parseFloat(e.target.value) || 0)}
+              value={montoEfectivo}
+              onChange={(e) => {
+                setInputTocado(true);
+                setMontoEfectivo(e.target.value);
+              }}
             />
           </InputField>
         </InputWrapper>
 
         {/* Resultado de diferencia */}
-        {montoEfectivo > 0 && (
+        {inputTocado && montoEfectivo !== "" && (
           <DiffResult $nivel={nivelAlerta}>
             <DiffIcon $nivel={nivelAlerta}>
               <Icon icon={
@@ -287,7 +293,7 @@ export function PantallaConteoCaja() {
         )}
 
         {/* Campos adicionales si hay diferencia */}
-        {montoEfectivo > 0 && !isExact && (
+        {inputTocado && montoEfectivo !== "" && !isExact && (
           <ExtraFields>
             <FieldGroup>
               <FieldLabel>Motivo de la diferencia</FieldLabel>
@@ -345,7 +351,10 @@ export function PantallaConteoCaja() {
             onClick={handleCerrarCaja} 
             disabled={
               isPending || 
-              montoEfectivo <= 0 ||
+              !inputTocado ||
+              montoEfectivo === "" ||
+              parseFloat(montoEfectivo) < 0 ||
+              (parseFloat(montoEfectivo) === 0 && totalEfectivoTotalCaja > 0) ||
               (!isExact && justificacion.length < 10) ||
               (requiereAutorizacion && !supervisorValidado?.valido)
             }

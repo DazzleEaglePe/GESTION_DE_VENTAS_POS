@@ -731,30 +731,6 @@ export function HeaderPos() {
                 <Icon icon="lucide:plus" />
               </StepperButton>
             </QuantityStepper>
-
-            {/* Stepper de cantidad - después de buscar */}
-            <QuantityStepper>
-              <StepperButton 
-                onClick={() => setCantidadInput(prev => Math.max(1, prev - 1))}
-                disabled={cantidadInput <= 1}
-              >
-                <Icon icon="lucide:minus" />
-              </StepperButton>
-              <StepperValue>
-                <input
-                  type="number"
-                  min="1"
-                  value={cantidadInput}
-                  onChange={ValidarCantidad}
-                />
-              </StepperValue>
-              <StepperButton 
-                onClick={() => setCantidadInput(prev => prev + 1)}
-                className="plus"
-              >
-                <Icon icon="lucide:plus" />
-              </StepperButton>
-            </QuantityStepper>
           </SearchSection>
         </CenterSection>
 
