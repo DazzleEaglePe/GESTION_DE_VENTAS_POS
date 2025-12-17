@@ -237,7 +237,7 @@ export function RegistrarProductos({
             <InputGroup>
               <Label>Precio venta</Label>
               <InputWrapper>
-                <InputIcon><Icon icon="lucide:dollar-sign" /></InputIcon>
+                <InputIcon><span style={{ fontWeight: 600 }}>{dataempresa?.simbolo_moneda || "$"}</span></InputIcon>
                 <Input
                   type="number"
                   step="0.01"

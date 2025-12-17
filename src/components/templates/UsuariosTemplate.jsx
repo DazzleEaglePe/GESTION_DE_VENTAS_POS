@@ -400,14 +400,14 @@ function getColorByRole(rol) {
 const Container = styled.div`
   min-height: calc(100vh - 50px);
   margin-top: 50px;
-  padding: 24px;
-  background: #f8fafc;
+  padding: 30px;
+  background: #f5f5f5;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 
   @media (max-width: 768px) {
-    padding: 16px;
+    padding: 20px 15px;
     gap: 16px;
   }
 `;
@@ -440,12 +440,12 @@ const IconWrapper = styled.div`
   justify-content: center;
   width: 52px;
   height: 52px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
   border-radius: 14px;
 
   svg {
     font-size: 26px;
-    color: #fff;
+    color: #0d9488;
   }
 `;
 
@@ -493,7 +493,7 @@ const SearchIcon = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  min-width: 260px;
+  min-width: 280px;
   padding: 12px 40px 12px 44px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -508,9 +508,9 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #6366f1;
+    border-color: #0d9488;
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
   }
 `;
 
@@ -542,7 +542,7 @@ const AddButton = styled.button`
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: #0d9488;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -557,8 +557,9 @@ const AddButton = styled.button`
   }
 
   &:hover {
+    background: #0f766e;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
   }
 
   &:active {
@@ -626,7 +627,7 @@ const TabBadge = styled.span`
   border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
-  background: ${props => props.$active ? '#6366f1' : '#e2e8f0'};
+  background: ${props => props.$active ? '#0d9488' : '#e2e8f0'};
   color: ${props => props.$active ? '#fff' : '#64748b'};
 `;
 
@@ -650,8 +651,8 @@ const UsuarioCard = styled.div`
   opacity: ${props => props.$inactive ? 0.9 : 1};
 
   &:hover {
-    border-color: ${props => props.$inactive ? '#fca5a5' : '#c7d2fe'};
-    box-shadow: 0 4px 12px ${props => props.$inactive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(99, 102, 241, 0.08)'};
+    border-color: ${props => props.$inactive ? '#fca5a5' : '#99f6e4'};
+    box-shadow: 0 4px 12px ${props => props.$inactive ? 'rgba(239, 68, 68, 0.08)' : 'rgba(13, 148, 136, 0.08)'};
   }
 `;
 
@@ -846,7 +847,7 @@ const EmptyState = styled.div`
     font-size: 56px;
     margin-bottom: 16px;
     opacity: 0.4;
-    color: #6366f1;
+    color: #0d9488;
   }
 
   h3 {

@@ -285,7 +285,7 @@ export function RegistrarInventario({ setIsExploding }) {
                 <Label>Precio compra</Label>
                 <InputWrapper>
                   <InputIcon>
-                    <Icon icon="lucide:dollar-sign" />
+                    <span style={{ fontWeight: 600 }}>{dataempresa?.simbolo_moneda || "$"}</span>
                   </InputIcon>
                   <Input
                     type="number"
@@ -301,7 +301,7 @@ export function RegistrarInventario({ setIsExploding }) {
                 <Label>Precio venta</Label>
                 <InputWrapper>
                   <InputIcon>
-                    <Icon icon="lucide:dollar-sign" />
+                    <span style={{ fontWeight: 600 }}>{dataempresa?.simbolo_moneda || "$"}</span>
                   </InputIcon>
                   <Input
                     type="number"

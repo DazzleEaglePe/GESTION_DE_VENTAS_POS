@@ -183,22 +183,20 @@ export function TablaProductos({
       cell: (info) => <ProductName>{info.getValue()}</ProductName>,
     },
     {
-      accessorKey: "precio_venta",
+      accessorKey: "p_venta",
       header: "P. Venta",
       cell: (info) => (
         <PriceBadge>
-          <Icon icon="lucide:dollar-sign" width="14" />
-          {Number(info.getValue() || 0).toFixed(2)}
+          {info.getValue() || "0.00"}
         </PriceBadge>
       ),
     },
     {
-      accessorKey: "precio_compra",
+      accessorKey: "p_compra",
       header: "P. Compra",
       cell: (info) => (
         <PriceBadgeGray>
-          <Icon icon="lucide:dollar-sign" width="14" />
-          {Number(info.getValue() || 0).toFixed(2)}
+          {info.getValue() || "0.00"}
         </PriceBadgeGray>
       ),
     },

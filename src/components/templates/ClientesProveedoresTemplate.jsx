@@ -299,12 +299,12 @@ const IconWrapper = styled.div`
   background: ${({ $esCliente }) => 
     $esCliente 
       ? 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%)' 
-      : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'};
+      : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'};
   border-radius: 14px;
 
   svg {
     font-size: 26px;
-    color: ${({ $esCliente }) => $esCliente ? '#db2777' : '#d97706'};
+    color: ${({ $esCliente }) => $esCliente ? '#db2777' : '#10b981'};
   }
 `;
 
@@ -369,10 +369,10 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${({ $esCliente }) => $esCliente ? '#db2777' : '#d97706'};
+    border-color: ${({ $esCliente }) => $esCliente ? '#db2777' : '#10b981'};
     background: #fff;
     box-shadow: 0 0 0 3px ${({ $esCliente }) => 
-      $esCliente ? 'rgba(219, 39, 119, 0.1)' : 'rgba(217, 119, 6, 0.1)'};
+      $esCliente ? 'rgba(219, 39, 119, 0.1)' : 'rgba(16, 185, 129, 0.1)'};
   }
 `;
 
@@ -404,7 +404,7 @@ const AddButton = styled.button`
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: ${({ $esCliente }) => $esCliente ? '#db2777' : '#d97706'};
+  background: ${({ $esCliente }) => $esCliente ? '#db2777' : '#10b981'};
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -419,10 +419,10 @@ const AddButton = styled.button`
   }
 
   &:hover {
-    background: ${({ $esCliente }) => $esCliente ? '#be185d' : '#b45309'};
+    background: ${({ $esCliente }) => $esCliente ? '#be185d' : '#059669'};
     transform: translateY(-1px);
     box-shadow: 0 4px 12px ${({ $esCliente }) => 
-      $esCliente ? 'rgba(219, 39, 119, 0.3)' : 'rgba(217, 119, 6, 0.3)'};
+      $esCliente ? 'rgba(219, 39, 119, 0.3)' : 'rgba(16, 185, 129, 0.3)'};
   }
 
   &:active {
@@ -462,12 +462,12 @@ const Tab = styled.button`
   font-weight: 500;
   background: ${({ $active, $esCliente }) => 
     $active 
-      ? ($esCliente ? '#db2777' : '#d97706') 
+      ? ($esCliente ? '#db2777' : '#10b981') 
       : '#f8fafc'};
   color: ${({ $active }) => ($active ? '#fff' : '#64748b')};
   border: 1px solid ${({ $active, $esCliente }) => 
     $active 
-      ? ($esCliente ? '#db2777' : '#d97706') 
+      ? ($esCliente ? '#db2777' : '#10b981') 
       : '#e2e8f0'};
   border-radius: 8px;
   cursor: pointer;
@@ -478,11 +478,11 @@ const Tab = styled.button`
   &:hover {
     background: ${({ $active, $esCliente }) => 
       $active 
-        ? ($esCliente ? '#db2777' : '#d97706') 
+        ? ($esCliente ? '#db2777' : '#10b981') 
         : '#f1f5f9'};
     border-color: ${({ $active, $esCliente }) => 
       $active 
-        ? ($esCliente ? '#db2777' : '#d97706') 
+        ? ($esCliente ? '#db2777' : '#10b981') 
         : '#cbd5e1'};
   }
 `;

@@ -68,8 +68,7 @@ export function TablaProductosInactivos({ data }) {
       header: "Precio",
       cell: (info) => (
         <PriceBadge>
-          <Icon icon="lucide:dollar-sign" width="14" />
-          {Number(info.getValue() || 0).toFixed(2)}
+          {info.getValue() || "0.00"}
         </PriceBadge>
       ),
     },

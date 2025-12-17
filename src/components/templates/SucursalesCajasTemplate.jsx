@@ -253,12 +253,12 @@ const IconWrapper = styled.div`
   justify-content: center;
   width: 52px;
   height: 52px;
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
   border-radius: 14px;
 
   svg {
     font-size: 26px;
-    color: #2563eb;
+    color: #4f46e5;
   }
 `;
 
@@ -323,9 +323,9 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #2563eb;
+    border-color: #4f46e5;
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   }
 `;
 
@@ -357,7 +357,7 @@ const AddButton = styled.button`
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: #2563eb;
+  background: #4f46e5;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -372,9 +372,9 @@ const AddButton = styled.button`
   }
 
   &:hover {
-    background: #1d4ed8;
+    background: #4338ca;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
   }
 
   &:active {
@@ -412,9 +412,9 @@ const Tab = styled.button`
   padding: 10px 16px;
   font-size: 14px;
   font-weight: 500;
-  background: ${({ $active }) => ($active ? '#2563eb' : '#f8fafc')};
+  background: ${({ $active }) => ($active ? '#4f46e5' : '#f8fafc')};
   color: ${({ $active }) => ($active ? '#fff' : '#64748b')};
-  border: 1px solid ${({ $active }) => ($active ? '#2563eb' : '#e2e8f0')};
+  border: 1px solid ${({ $active }) => ($active ? '#4f46e5' : '#e2e8f0')};
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
@@ -422,8 +422,8 @@ const Tab = styled.button`
   svg { font-size: 18px; }
 
   &:hover {
-    background: ${({ $active }) => ($active ? '#2563eb' : '#f1f5f9')};
-    border-color: ${({ $active }) => ($active ? '#2563eb' : '#cbd5e1')};
+    background: ${({ $active }) => ($active ? '#4f46e5' : '#f1f5f9')};
+    border-color: ${({ $active }) => ($active ? '#4f46e5' : '#cbd5e1')};
   }
 `;
 

@@ -111,7 +111,7 @@ export function ConfiguracionesTemplate() {
         })}
         
         {/* Card especial para Elementos Eliminados - Solo para admins */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/eliminados">
             <IconWrapper $bgColor="#fef2f2">
               <Icon icon="lucide:trash-2" style={{ color: "#dc2626", fontSize: 28 }} />
@@ -124,10 +124,10 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* Card especial para Auditoría - Solo para admins */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/auditoria">
             <IconWrapper $bgColor="#eef2ff">
               <Icon icon="lucide:activity" style={{ color: "#6366f1", fontSize: 28 }} />
@@ -140,10 +140,10 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* Card especial para Historial de Precios - Solo para admins */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/historial-precios">
             <IconWrapper $bgColor="#fef3c7">
               <Icon icon="lucide:history" style={{ color: "#d97706", fontSize: 28 }} />
@@ -156,10 +156,10 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* Card especial para Transferencias entre Almacenes - Solo para admins */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/transferencias">
             <IconWrapper $bgColor="#f3e8ff">
               <Icon icon="lucide:arrow-left-right" style={{ color: "#8b5cf6", fontSize: 28 }} />
@@ -172,12 +172,12 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* ===== FASE 3: MEJORAS / DIFERENCIACIÓN ===== */}
         
         {/* Card especial para Variantes de Productos */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/variantes">
             <IconWrapper $bgColor="#eef2ff">
               <Icon icon="lucide:layers" style={{ color: "#6366f1", fontSize: 28 }} />
@@ -190,10 +190,10 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* Card especial para Multi-Precios */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/multiprecios">
             <IconWrapper $bgColor="#ecfdf5">
               <Icon icon="lucide:badge-dollar-sign" style={{ color: "#10b981", fontSize: 28 }} />
@@ -206,10 +206,10 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* Card especial para Productos Compuestos (Kits) */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/productos-compuestos">
             <IconWrapper $bgColor="#fffbeb">
               <Icon icon="lucide:boxes" style={{ color: "#f59e0b", fontSize: 28 }} />
@@ -222,10 +222,10 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
         
         {/* Card especial para Control de Seriales */}
-        {esAdmin && (
+        {/* {esAdmin && (
           <Card to="/configuracion/seriales">
             <IconWrapper $bgColor="#faf5ff">
               <Icon icon="lucide:barcode" style={{ color: "#a855f7", fontSize: 28 }} />
@@ -238,7 +238,7 @@ export function ConfiguracionesTemplate() {
               <Icon icon="lucide:chevron-right" />
             </ArrowIcon>
           </Card>
-        )}
+        )} */}
       </CardsGrid>
     </Container>
   );
